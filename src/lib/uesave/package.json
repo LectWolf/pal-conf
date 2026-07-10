@@ -4,6 +4,7 @@
     "ieb <1@wa.vg>"
   ],
   "version": "0.1.0",
+  "type": "module",
   "files": [
     "uesave_wasm_bg.wasm",
     "uesave_wasm.js",

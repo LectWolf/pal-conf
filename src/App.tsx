@@ -53,7 +53,16 @@ enum SettingCategory {
 }
 
 const CONFIG_CODE_PATTERN = /^[A-Z0-9]{4}-[A-Z0-9]{4}$/;
-const RESERVED_LAUNCH_SETTING_IDS = new Set(["PublicPort", "PublicIP", "ServerPassword", "AdminPassword"]);
+const RESERVED_LAUNCH_SETTING_IDS = new Set([
+  "PublicPort",
+  "PublicIP",
+  "ServerPassword",
+  "AdminPassword",
+  "RCONEnabled",
+  "RCONPort",
+  "RESTAPIEnabled",
+  "RESTAPIPort",
+]);
 
 function isConfigurableEntry(id: string) {
   return !RESERVED_LAUNCH_SETTING_IDS.has(id);
@@ -363,7 +372,7 @@ function App() {
               </DropdownMenu>
             </CardTitle>
             <CardDescription>
-              当前页面只生成配置码。服务器端口、公共 IP、服务器密码、管理员密码不写入配置码。
+              当前页面只生成配置码。服务器端口、公共 IP、服务器密码、管理员密码、RCON 和 REST API 参数不写入配置码。
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4" ref={tabRef}>

@@ -4,6 +4,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { DatabaseSync } from "node:sqlite";
+import pako from "pako";
+import * as uesave from "../src/lib/uesave/uesave_wasm_bg.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..");
@@ -18,6 +20,12 @@ const codePattern = /^[A-Z0-9]{4}-[A-Z0-9]{4}$/;
 const schema = JSON.parse(fs.readFileSync(schemaPath, "utf8"));
 const schemaEntries = schema.entries;
 const schemaById = new Map(schemaEntries.map((entry) => [entry.id, entry]));
+const worldOptionKeys = new Set(schema.worldOptionKeys ?? []);
+const entryIdToEnumName = schema.entryIdToEnumName ?? {};
+
+const wasmBytes = fs.readFileSync(path.join(root, "src", "lib", "uesave", "uesave_wasm_bg.wasm"));
+const wasm = await WebAssembly.instantiate(wasmBytes, { "./uesave_wasm_bg.js": uesave });
+uesave.__wbg_set_wasm(wasm.instance.exports);
 
 fs.mkdirSync(path.dirname(dbPath), { recursive: true });
 const db = new DatabaseSync(dbPath);
@@ -112,6 +120,94 @@ function buildPalWorldSettingsIni(settings) {
   return `[/Script/Pal.PalGameWorldSettings]\nOptionSettings=(${values.join(",")})\n`;
 }
 
+function buildWorldOptionJson(settings) {
+  const result = {};
+  for (const entry of schemaEntries) {
+    if (!worldOptionKeys.has(entry.id)) {
+      continue;
+    }
+    const value = settings[entry.id] ?? entry.defaultValue;
+    const defaultValue = entry.defaultValue;
+    const enumType = entryIdToEnumName[entry.id];
+
+    if ((entry.type === "integer" || entry.type === "float") && Number(value) === Number(defaultValue)) {
+      continue;
+    }
+    if (entry.type !== "integer" && entry.type !== "float" && String(value) === String(defaultValue)) {
+      continue;
+    }
+
+    if (entry.type === "select" && enumType) {
+      result[entry.id] = {
+        Enum: {
+          value: `${enumType}::${value}`,
+          enum_type: enumType,
+        },
+      };
+    } else if (entry.type === "array" && enumType) {
+      const enumValues = String(value).trim() === "" ? [] : String(value).split(",").map((item) => `${enumType}::${item}`);
+      result[entry.id] = {
+        Array: {
+          array_type: "EnumProperty",
+          value: {
+            Base: {
+              Enum: enumValues,
+            },
+          },
+        },
+      };
+    } else if (entry.type === "boolean") {
+      result[entry.id] = {
+        Bool: {
+          value: value === "True",
+        },
+      };
+    } else if (entry.type === "integer") {
+      result[entry.id] = {
+        Int: {
+          value: Number(value),
+        },
+      };
+    } else if (entry.type === "float") {
+      result[entry.id] = {
+        Float: {
+          value: Number(value),
+        },
+      };
+    } else if (entry.type === "string") {
+      result[entry.id] = {
+        Str: {
+          value,
+        },
+      };
+    }
+  }
+  return result;
+}
+
+function buildWorldOptionSav(settings) {
+  const save = JSON.parse(JSON.stringify(schema.defaultWorldOptionSav));
+  save.gvas.root.properties.OptionWorldData.Struct.value.Struct.Settings.Struct.value.Struct = buildWorldOptionJson(settings);
+
+  let serialized = uesave.serialize(JSON.stringify(save.gvas));
+  const lenDecompressed = serialized.length;
+  const leadingByte = (save.magic & 0xff000000) >> 24;
+  if (leadingByte === 0x32) {
+    serialized = pako.deflate(serialized);
+    serialized = pako.deflate(serialized);
+  } else if (leadingByte === 0x31) {
+    serialized = pako.deflate(serialized);
+  }
+
+  const lenCompressed = serialized.length;
+  const buffer = Buffer.alloc(4 + 4 + 4 + lenCompressed);
+  buffer.writeInt32LE(lenDecompressed, 0);
+  buffer.writeInt32LE(lenCompressed, 4);
+  buffer.writeInt32LE(save.magic, 8);
+  buffer.set(serialized, 12);
+  return buffer;
+}
+
 function getConfig(code) {
   const row = selectConfig.get(code);
   if (!row) {
@@ -137,6 +233,15 @@ function sendText(res, status, body, contentType = "text/plain; charset=utf-8") 
   res.writeHead(status, {
     "Content-Type": contentType,
     "Content-Length": Buffer.byteLength(body),
+    "Cache-Control": "no-store",
+  });
+  res.end(body);
+}
+
+function sendBuffer(res, status, body, contentType = "application/octet-stream") {
+  res.writeHead(status, {
+    "Content-Type": contentType,
+    "Content-Length": body.length,
     "Cache-Control": "no-store",
   });
   res.end(body);
@@ -229,6 +334,22 @@ const server = http.createServer(async (req, res) => {
         return;
       }
       sendText(res, 200, buildPalWorldSettingsIni(mergeSettings(config.overrides)), "text/plain; charset=utf-8");
+      return;
+    }
+
+    const savMatch = pathname.match(/^\/api\/configs\/([^/]+)\/worldoption\.sav$/i);
+    if (req.method === "GET" && savMatch) {
+      const code = normalizeCode(savMatch[1]);
+      if (!codePattern.test(code)) {
+        sendJson(res, 400, { error: "配置码格式无效" });
+        return;
+      }
+      const config = getConfig(code);
+      if (!config) {
+        sendJson(res, 404, { error: "配置码不存在" });
+        return;
+      }
+      sendBuffer(res, 200, buildWorldOptionSav(mergeSettings(config.overrides)), "application/octet-stream");
       return;
     }
 

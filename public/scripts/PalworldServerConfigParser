@@ -5,11 +5,32 @@ set -eu
 : "${PAL_CONF_CODE:?请设置 PAL_CONF_CODE}"
 
 PALWORLD_SETTINGS_PATH="${PALWORLD_SETTINGS_PATH:-/home/container/Pal/Saved/Config/LinuxServer/PalWorldSettings.ini}"
-tmp_file="${PALWORLD_SETTINGS_PATH}.tmp"
+WORLDOPTION_SAV_PATH="${WORLDOPTION_SAV_PATH:-}"
+
+if [ -z "$WORLDOPTION_SAV_PATH" ]; then
+  WORLDOPTION_SAV_PATH="$(find /home/container/Pal/Saved/SaveGames/0 -path '*/WorldOption.sav' -type f 2>/dev/null | head -n 1 || true)"
+fi
+
+if [ -z "$WORLDOPTION_SAV_PATH" ]; then
+  save_dir="$(find /home/container/Pal/Saved/SaveGames/0 -mindepth 1 -maxdepth 1 -type d 2>/dev/null | head -n 1 || true)"
+  if [ -n "$save_dir" ]; then
+    WORLDOPTION_SAV_PATH="${save_dir%/}/WorldOption.sav"
+  else
+    WORLDOPTION_SAV_PATH="/home/container/Pal/Saved/SaveGames/0/WorldOption.sav"
+  fi
+fi
 
 mkdir -p "$(dirname "$PALWORLD_SETTINGS_PATH")"
+mkdir -p "$(dirname "$WORLDOPTION_SAV_PATH")"
 
-curl -fsSL "${PAL_CONF_BASE_URL%/}/api/configs/${PAL_CONF_CODE}/palworldsettings.ini" -o "$tmp_file"
-mv "$tmp_file" "$PALWORLD_SETTINGS_PATH"
+ini_tmp="${PALWORLD_SETTINGS_PATH}.tmp"
+sav_tmp="${WORLDOPTION_SAV_PATH}.tmp"
+
+curl -fsSL "${PAL_CONF_BASE_URL%/}/api/configs/${PAL_CONF_CODE}/palworldsettings.ini" -o "$ini_tmp"
+curl -fsSL "${PAL_CONF_BASE_URL%/}/api/configs/${PAL_CONF_CODE}/worldoption.sav" -o "$sav_tmp"
+
+mv "$ini_tmp" "$PALWORLD_SETTINGS_PATH"
+mv "$sav_tmp" "$WORLDOPTION_SAV_PATH"
 
 echo "PalWorldSettings.ini 已通过配置码 ${PAL_CONF_CODE} 更新"
+echo "WorldOption.sav 已通过配置码 ${PAL_CONF_CODE} 更新"
