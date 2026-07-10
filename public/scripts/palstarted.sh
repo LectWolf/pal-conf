@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-: "${PAL_CONF_BASE_URL:?请设置 PAL_CONF_BASE_URL}"
+PAL_CONF_BASE_URL="${PAL_CONF_BASE_URL:-https://pal.started.ink}"
 
 parser_path="${PALWORLD_CONFIG_PARSER_PATH:-./PalworldServerConfigParser}"
 tmp_file="${parser_path}.tmp"

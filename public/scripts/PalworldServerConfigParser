@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-: "${PAL_CONF_BASE_URL:?请设置 PAL_CONF_BASE_URL}"
+PAL_CONF_BASE_URL="${PAL_CONF_BASE_URL:-https://pal.started.ink}"
 : "${PAL_CONF_CODE:?请设置 PAL_CONF_CODE}"
 
 CONFIG_DIR="${PALWORLD_CONFIG_DIR:-/home/container/Pal/Saved/Config/LinuxServer}"
