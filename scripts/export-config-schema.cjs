@@ -24,7 +24,7 @@ sandbox.exports = sandbox.module.exports;
 
 vm.runInNewContext(transpiled.outputText, sandbox, { filename: sourcePath });
 
-const reservedLaunchSettingIds = new Set(["PublicPort", "ServerName", "ServerPassword", "AdminPassword"]);
+const reservedLaunchSettingIds = new Set(["PublicPort", "PublicIP", "ServerPassword", "AdminPassword"]);
 const entries = Object.values(sandbox.module.exports.ENTRIES)
   .filter((entry) => !reservedLaunchSettingIds.has(entry.id))
   .map((entry) => ({

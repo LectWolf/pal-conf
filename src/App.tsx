@@ -1,6 +1,6 @@
 import "./App.css";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 // i18n
 import i18n, { I18nStr } from "./i18n";
@@ -11,13 +11,11 @@ import { CardTitle, CardDescription, CardHeader, CardContent, Card } from "@/com
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 // UI Icons
-import { AlertCircle, Copy, KeyRound, Languages } from "lucide-react";
+import { Copy, KeyRound, Languages } from "lucide-react";
 import ReactCountryFlag from "react-country-flag";
 
 // App Components
@@ -55,7 +53,7 @@ enum SettingCategory {
 }
 
 const CONFIG_CODE_PATTERN = /^[A-Z0-9]{4}-[A-Z0-9]{4}$/;
-const RESERVED_LAUNCH_SETTING_IDS = new Set(["PublicPort", "ServerName", "ServerPassword", "AdminPassword"]);
+const RESERVED_LAUNCH_SETTING_IDS = new Set(["PublicPort", "PublicIP", "ServerPassword", "AdminPassword"]);
 
 function isConfigurableEntry(id: string) {
   return !RESERVED_LAUNCH_SETTING_IDS.has(id);
@@ -282,54 +280,6 @@ function App() {
 
   const advancedSettings = AdvancedSettings.filter(isConfigurableEntry).map((k) => genInput(k));
 
-  const publicBaseUrl = typeof window === "undefined" ? "" : window.location.origin;
-  const generatedScript = useMemo(() => {
-    if (!configCode) {
-      return "";
-    }
-    return `#!/usr/bin/env sh
-set -eu
-
-export PAL_CONF_BASE_URL="\${PAL_CONF_BASE_URL:-${publicBaseUrl}}"
-export PAL_CONF_CODE="\${PAL_CONF_CODE:-${configCode}}"
-
-: "\${SERVER_PORT:?请设置 SERVER_PORT}"
-: "\${SERVER_NAME:?请设置 SERVER_NAME}"
-: "\${ADMIN_PASSWORD:?请设置 ADMIN_PASSWORD}"
-RCON_PORT="\${RCON_PORT:-25575}"
-
-if [ ! -x ./PalworldServerConfigParser ]; then
-  curl -fsSL "\${PAL_CONF_BASE_URL%/}/scripts/PalworldServerConfigParser" -o ./PalworldServerConfigParser
-  chmod +x ./PalworldServerConfigParser
-fi
-
-./palstarted.sh
-./PalworldServerConfigParser
-
-(
-  while read -r cmd; do
-    rcon -s -a "localhost:\${RCON_PORT}" -p "\${ADMIN_PASSWORD}" "\${cmd}"
-  done
-) < /dev/stdin &
-
-set -- /home/container/Pal/Binaries/Linux/PalServer-Linux-Shipping Pal \\
-  -publiclobby \\
-  -useperfthreads \\
-  -NoAsyncLoadingThread \\
-  -UseMultithreadForDS \\
-  "-port=\${SERVER_PORT}" \\
-  "-servername=\${SERVER_NAME}" \\
-  "-adminpassword=\${ADMIN_PASSWORD}" \\
-  -rcon
-
-if [ -n "\${SERVER_PASSWORD:-}" ]; then
-  set -- "$@" "-serverpassword=\${SERVER_PASSWORD}"
-fi
-
-exec "$@"
-`;
-  }, [configCode, publicBaseUrl]);
-
   useEffect(() => {
     document.title = t(I18nStr.title);
   }, [t]);
@@ -413,7 +363,7 @@ exec "$@"
               </DropdownMenu>
             </CardTitle>
             <CardDescription>
-              当前页面只生成配置码。服务器端口、服务器名称、服务器密码、管理员密码请通过启动脚本环境变量传入。
+              当前页面只生成配置码。服务器端口、公共 IP、服务器密码、管理员密码不写入配置码。
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4" ref={tabRef}>
@@ -450,7 +400,7 @@ exec "$@"
               <KeyRound className="h-5 w-5" />
               配置码
             </CardTitle>
-            <CardDescription>配置码永久有效，可在网页读取，也可交给服务器启动脚本下载配置文件。</CardDescription>
+            <CardDescription>配置码永久有效，可在网页读取，也可交给服务器端配置工具下载配置文件。</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex flex-col gap-3 sm:flex-row">
@@ -487,53 +437,6 @@ exec "$@"
             )}
           </CardContent>
         </Card>
-
-        <Alert className="w-full max-w-3xl mt-8 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-md">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>启动参数不写入配置码</AlertTitle>
-          <AlertDescription className="text-wrap break-all whitespace-pre-wrap">
-            已排除 PublicPort、ServerName、ServerPassword、AdminPassword。请用 SERVER_PORT、SERVER_NAME、SERVER_PASSWORD、ADMIN_PASSWORD 环境变量提供给启动脚本。
-          </AlertDescription>
-        </Alert>
-
-        <Card className="w-full max-w-3xl mt-8">
-          <CardHeader>
-            <CardTitle className="text-lg">启动脚本</CardTitle>
-            <CardDescription>生成配置码后复制这段脚本。脚本会下载 PalworldServerConfigParser，并用配置码替换服务器上的 PalWorldSettings.ini。</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Textarea
-              readOnly
-              value={generatedScript || "生成配置码后，这里会出现可复制的启动脚本。"}
-              className="min-h-[360px] font-mono text-xs"
-            />
-            <Button
-              variant="outline"
-              disabled={!generatedScript}
-              onClick={() =>
-                void copyText(generatedScript)
-                  .then(() => toast.success("启动脚本已复制"))
-                  .catch(() => toast.error("复制失败"))
-              }
-            >
-              <Copy className="mr-2 h-4 w-4" />
-              复制启动脚本
-            </Button>
-          </CardContent>
-        </Card>
-
-        <div className="w-full max-w-3xl flex justify-center pt-2">
-          2024-{`${new Date().getFullYear()}`} @LectWolf
-          <a
-            href="https://github.com/LectWolf/pal-conf"
-            className="pl-2 font-medium text-primary underline underline-offset-4 top-2"
-            target="_blank"
-            rel="noreferrer"
-          >
-            Github
-          </a>
-          {__COMMIT_HASH__ && `@${__COMMIT_HASH__}`}
-        </div>
       </main>
     </>
   );
