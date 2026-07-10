@@ -1,5 +1,5 @@
-#!/usr/bin/env sh
-set -eu
+#!/usr/bin/env bash
+set -euo pipefail
 
 : "${PAL_CONF_BASE_URL:?请设置 PAL_CONF_BASE_URL}"
 

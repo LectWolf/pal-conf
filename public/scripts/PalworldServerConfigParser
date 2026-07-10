@@ -1,10 +1,11 @@
-#!/usr/bin/env sh
-set -eu
+#!/usr/bin/env bash
+set -euo pipefail
 
 : "${PAL_CONF_BASE_URL:?请设置 PAL_CONF_BASE_URL}"
 : "${PAL_CONF_CODE:?请设置 PAL_CONF_CODE}"
 
-PALWORLD_SETTINGS_PATH="${PALWORLD_SETTINGS_PATH:-/home/container/Pal/Saved/Config/LinuxServer/PalWorldSettings.ini}"
+CONFIG_DIR="${PALWORLD_CONFIG_DIR:-/home/container/Pal/Saved/Config/LinuxServer}"
+PALWORLD_SETTINGS_PATH="${PALWORLD_SETTINGS_PATH:-${CONFIG_DIR}/PalWorldSettings.ini}"
 WORLDOPTION_SAV_PATH="${WORLDOPTION_SAV_PATH:-}"
 
 if [ -z "$WORLDOPTION_SAV_PATH" ]; then
