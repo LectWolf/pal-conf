@@ -372,7 +372,7 @@ function App() {
               </DropdownMenu>
             </CardTitle>
             <CardDescription>
-              当前页面只生成配置码。服务器端口、公共 IP、服务器密码、管理员密码、RCON 和 REST API 参数不写入配置码。
+              调整服务器玩法设置，生成配置码后交给服务器启动配置使用。
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4" ref={tabRef}>

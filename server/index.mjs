@@ -33,13 +33,14 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS configs (
     code TEXT PRIMARY KEY,
     settings_json TEXT NOT NULL,
+    settings_hash TEXT NOT NULL UNIQUE,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
   )
 `);
-
-const insertConfig = db.prepare("INSERT INTO configs (code, settings_json) VALUES (?, ?)");
+const insertConfig = db.prepare("INSERT INTO configs (code, settings_json, settings_hash) VALUES (?, ?, ?)");
 const selectConfig = db.prepare("SELECT code, settings_json FROM configs WHERE code = ?");
+const selectConfigByHash = db.prepare("SELECT code, settings_json FROM configs WHERE settings_hash = ?");
 
 function normalizeCode(code) {
   const compact = String(code ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
@@ -96,6 +97,18 @@ function sanitizeOverrides(settings) {
     }
   }
   return overrides;
+}
+
+function canonicalizeOverrides(overrides) {
+  return Object.fromEntries(Object.entries(sanitizeOverrides(overrides)).sort(([left], [right]) => left.localeCompare(right)));
+}
+
+function stringifyCanonicalOverrides(overrides) {
+  return JSON.stringify(canonicalizeOverrides(overrides));
+}
+
+function hashOverrides(overrides) {
+  return crypto.createHash("sha256").update(stringifyCanonicalOverrides(overrides)).digest("hex");
 }
 
 function mergeSettings(overrides) {
@@ -288,11 +301,18 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === "POST" && pathname === "/api/configs") {
       const body = await parseJsonBody(req);
-      const overrides = sanitizeOverrides(body.settings);
+      const overrides = canonicalizeOverrides(body.settings);
+      const settingsJson = stringifyCanonicalOverrides(overrides);
+      const settingsHash = hashOverrides(overrides);
+      const existingConfig = selectConfigByHash.get(settingsHash);
+      if (existingConfig) {
+        sendJson(res, 200, { code: existingConfig.code, settings: mergeSettings(JSON.parse(existingConfig.settings_json)) });
+        return;
+      }
       for (let attempts = 0; attempts < 20; attempts += 1) {
         const code = generateCode();
         try {
-          insertConfig.run(code, JSON.stringify(overrides));
+          insertConfig.run(code, settingsJson, settingsHash);
           sendJson(res, 201, { code, settings: mergeSettings(overrides) });
           return;
         } catch (error) {
