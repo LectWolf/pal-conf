@@ -18,7 +18,12 @@ type I18nStr = typeof en_US.translation;
 
 const initConfig = {
   debug: false,
-  fallbackLng: "en_US",
+  fallbackLng: "zh_CN",
+  detection: {
+    order: ["querystring", "localStorage", "cookie", "sessionStorage"],
+    caches: ["localStorage"],
+    lookupQuerystring: "lng",
+  },
   interpolation: {
     escapeValue: false, // not needed for react as it escapes by default
   },
