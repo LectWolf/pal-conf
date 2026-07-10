@@ -1,0 +1,15 @@
+#!/usr/bin/env sh
+set -eu
+
+: "${PAL_CONF_BASE_URL:?请设置 PAL_CONF_BASE_URL}"
+: "${PAL_CONF_CODE:?请设置 PAL_CONF_CODE}"
+
+PALWORLD_SETTINGS_PATH="${PALWORLD_SETTINGS_PATH:-/home/container/Pal/Saved/Config/LinuxServer/PalWorldSettings.ini}"
+tmp_file="${PALWORLD_SETTINGS_PATH}.tmp"
+
+mkdir -p "$(dirname "$PALWORLD_SETTINGS_PATH")"
+
+curl -fsSL "${PAL_CONF_BASE_URL%/}/api/configs/${PAL_CONF_CODE}/palworldsettings.ini" -o "$tmp_file"
+mv "$tmp_file" "$PALWORLD_SETTINGS_PATH"
+
+echo "PalWorldSettings.ini 已通过配置码 ${PAL_CONF_CODE} 更新"

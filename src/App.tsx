@@ -1,6 +1,6 @@
 import "./App.css";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 // i18n
 import i18n, { I18nStr } from "./i18n";
@@ -14,11 +14,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge"
+import { Badge } from "@/components/ui/badge";
 // UI Icons
-import { Languages, AlertCircle, FileUp } from "lucide-react";
+import { AlertCircle, Copy, KeyRound, Languages } from "lucide-react";
 import ReactCountryFlag from "react-country-flag";
 
 // App Components
@@ -29,18 +28,12 @@ import { SliderInput } from "./components/sliderInput";
 import { SwitchInput } from "./components/switchInput";
 import { Input } from "./components/ui/input";
 
-// lib & utils
-import * as LosslessJSON from "lossless-json";
-import { analyzeFile, writeFile } from "./lib/save";
-
 // Constants
-import { configVersion } from '../package.json';
+import { configVersion } from "../package.json";
 import { ENTRIES } from "./consts/entries";
-import { DEFAULT_WORLDOPTION_SAV, VALID_WORLDOPTION_KEYS, DEFAULT_WORLDOPTION } from "./consts/worldoption";
-import { AdvancedSettings, InGameSettings, ServerSettings, EntryIdToEnumName } from "./consts/settings";
+import { AdvancedSettings, InGameSettings, ServerSettings } from "./consts/settings";
 
 // Types
-import { Gvas, WorldOption, WorldOptionEntry } from "./types/gvas";
 import { LabelValue } from "./components/selectInput";
 import { LabelValues } from "./components/multiSelectInput";
 
@@ -50,9 +43,9 @@ interface ChangeEvent<T> {
   };
 }
 
-enum FileMode {
-  INI = "ini",
-  SAV = "sav",
+interface ConfigCodeResponse {
+  code: string;
+  settings?: Record<string, string>;
 }
 
 enum SettingCategory {
@@ -61,17 +54,51 @@ enum SettingCategory {
   AdvancedSettings = "advanced-settings",
 }
 
+const CONFIG_CODE_PATTERN = /^[A-Z0-9]{4}-[A-Z0-9]{4}$/;
+const RESERVED_LAUNCH_SETTING_IDS = new Set(["PublicPort", "ServerName", "ServerPassword", "AdminPassword"]);
+
+function isConfigurableEntry(id: string) {
+  return !RESERVED_LAUNCH_SETTING_IDS.has(id);
+}
+
+function normalizeConfigCode(code: string) {
+  const compact = code.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  return compact.length === 8 ? `${compact.slice(0, 4)}-${compact.slice(4)}` : code.toUpperCase().trim();
+}
+
+function copyText(text: string) {
+  if (navigator.clipboard) {
+    return navigator.clipboard.writeText(text);
+  }
+  if (document.queryCommandSupported?.("copy")) {
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
+    document.body.appendChild(textarea);
+    textarea.select();
+    try {
+      document.execCommand("copy");
+      return Promise.resolve();
+    } catch (e) {
+      return Promise.reject(e);
+    } finally {
+      document.body.removeChild(textarea);
+    }
+  }
+  return Promise.reject(new Error("Copy failed"));
+}
+
 function App() {
   const { t } = useTranslation();
   const [locale, setLocale] = useState(i18n.language === "en" ? "en_US" : i18n.language);
   const [entries, setEntries] = useState({} as Record<string, string>);
-  const [fileMode, setFileMode] = useState<FileMode>(FileMode.INI);
   const [openedAccordion, setOpenedAccordion] = useState(SettingCategory.ServerSettings);
-  const [showUploadPrompt, setShowUploadPrompt] = useState(false);
-  const [pasteDialogOpen, setPasteDialogOpen] = useState(false);
-  const [pasteContent, setPasteContent] = useState("");
+  const [configCodeInput, setConfigCodeInput] = useState("");
+  const [configCode, setConfigCode] = useState("");
+  const [isSavingConfig, setIsSavingConfig] = useState(false);
+  const [isLoadingConfig, setIsLoadingConfig] = useState(false);
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const tabRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -81,324 +108,87 @@ function App() {
   }, [openedAccordion]);
 
   const onStateChanged = (id: string) => (e: ChangeEvent<string>) => {
+    if (!isConfigurableEntry(id)) {
+      return;
+    }
     setEntries((prevEntries) => ({ ...prevEntries, [id]: `${e.target.value}` }));
   };
 
-  const serializeEntriesToIni = () => {
-    const resultList: string[] = [];
+  const getConfigurableSettings = () => {
+    const result: Record<string, string> = {};
     Object.values(ENTRIES).forEach((entry) => {
-      const entryValue = entries[entry.id] ?? entry.defaultValue;
-      switch (entry.type) {
-        case "array":
-          resultList.push(`${entry.id}=(${entryValue})`);
-          break;
-        case "select":
-        case "boolean":
-        case "integer":
-          resultList.push(`${entry.id}=${entryValue}`);
-          break;
-        case "float":
-          resultList.push(`${entry.id}=${Number(entryValue).toFixed(6)}`);
-          break;
-        case "string":
-          resultList.push(`${entry.id}=${JSON.stringify(entryValue)}`);
-          break;
-        default:
-          resultList.push("");
-      }
-    });
-    return resultList.join(",");
-  };
-
-  const deserializeEntriesFromIni = (settingsText: string) => {
-    if (!settingsText) {
-      toast.error(t(I18nStr.toast.invalid), { description: t(I18nStr.toast.invalidDescription) });
-      return;
-    }
-    const settingsTextList = settingsText.trim().split(/\r\n|\r|\n/);
-    let loadedEntriesNum = 0;
-    let erroredLinesNum = 0;
-    settingsTextList.forEach((line) => {
-      if (line.startsWith("OptionSettings=(") && line.endsWith(")")) {
-        const optionSettings = line.substring("OptionSettings=(".length, line.length - 1);
-        const optionSettingsList: string[] = [];
-        let start = 0;
-        let end = 0;
-        let quotation = false;
-        let bracket = false;
-        for (const char of optionSettings) {
-          if (char === '"') {
-            quotation = !quotation;
-          }
-          if (char === '(') {
-            bracket = true;
-          }
-          if (char === ')') {
-            bracket = false;
-          }
-          end++;
-          if (char === "," && false === quotation && false === bracket) {
-            optionSettingsList.push(optionSettings.substring(start, end - 1));
-            start = end;
-          }
-        }
-        // the last one
-        optionSettingsList.push(optionSettings.substring(start, end));
-        const newEntries = { ...entries };
-        optionSettingsList.forEach((optionSetting) => {
-          // console.log(optionSetting);
-          const equalSignIndex = optionSetting.indexOf("=");
-          const optionSettingName = optionSetting.slice(0, equalSignIndex);
-          let optionSettingValue = optionSetting.slice(equalSignIndex + 1);
-          const entry = ENTRIES[optionSettingName];
-          if (entry) {
-            if (entry.type === "string" && optionSettingValue.startsWith('"') && optionSettingValue.endsWith('"')) {
-              optionSettingValue = optionSettingValue.substring(1, optionSettingValue.length - 1);
-            }
-            if (entry.type === "float" || entry.type === "integer") {
-              const optionSettingValueNum = Number(optionSettingValue);
-              if (!Number.isFinite(optionSettingValueNum)) {
-                console.error(`${entry.id} has an invalid number: ${optionSettingValue}`);
-                return;
-              }
-            }
-            if (entry.type === "boolean") {
-              optionSettingValue = optionSettingValue.toLowerCase() === "true" ? "True" : "False";
-            }
-            if (entry.type === "array") {
-              optionSettingValue = optionSettingValue.trim().replace(/^\(|\)$/g, "");
-            }
-            newEntries[entry.id] = optionSettingValue;
-            loadedEntriesNum++;
-          }
-        });
-        // console.log(newEntries);
-        setEntries(newEntries);
-      } else if (line.trim().startsWith(";") || line.trim() === "" || line.trim() === "[/Script/Pal.PalGameWorldSettings]") {
-        // skip
-      } else {
-        erroredLinesNum++;
-      }
-    });
-    if (loadedEntriesNum === 0 || erroredLinesNum > 0) {
-      toast.error(t(I18nStr.toast.invalid), {
-        description: t(I18nStr.toast.invalidDescription),
-      });
-      return;
-    } else if (loadedEntriesNum < Object.keys(ENTRIES).length) {
-      toast.warning(t(I18nStr.toast.missing), {
-        description: t(I18nStr.toast.missingDescription),
-      });
-      return;
-    } else {
-      toast.success(t(I18nStr.toast.loaded), {
-        description: t(I18nStr.toast.loadedDescription),
-      });
-      return;
-    }
-  };
-
-  const serializeEntriesToWorldOptionJson = () => {
-    const worldOptionJson: Partial<Record<keyof WorldOption, WorldOptionEntry>> = {};
-    Object.values(ENTRIES).forEach((entry) => {
-      const entryValue = entries[entry.id] ?? entry.defaultValue;
-      let dictValue = {} as WorldOptionEntry;
-      if (!(entry.id in DEFAULT_WORLDOPTION)) {
+      if (!isConfigurableEntry(entry.id)) {
         return;
       }
-      if (entryValue === entry.defaultValue) {
-        return;
-      }
-      if (entry.type === "select" && entry.id in EntryIdToEnumName) {
-        const enumType = EntryIdToEnumName[entry.id];
-        dictValue = {
-          Enum: {
-            value: `${enumType}::${entryValue}`,
-            enum_type: enumType,
-          },
-        };
-      } else if (entry.type === "array" && entry.id in EntryIdToEnumName) {
-        const enumType = EntryIdToEnumName[entry.id];
-        const enums = entryValue.trim() === "" ? []
-          : entryValue.split(",").map((e) => `${enumType}::${e}`);
-        dictValue = {
-          Array: {
-            array_type: "EnumProperty",
-            value: {
-              Base: {
-                Enum: enums
-              }
-            }
-          },
-        };
-      } else if (entry.type === "boolean") {
-        dictValue = {
-          Bool: {
-            value: entryValue === "True",
-          },
-        };
-      } else if (entry.type === "integer") {
-        if (Number(entryValue) === Number(entry.defaultValue)) {
-          return;
-        }
-        dictValue = {
-          Int: {
-            value: Number(entryValue),
-          },
-        };
-      } else if (entry.type === "float") {
-        if (Number(entryValue) === Number(entry.defaultValue)) {
-          return;
-        }
-        dictValue = {
-          Float: {
-            value: Number(entryValue),
-          },
-        };
-      } else if (entry.type === "string") {
-        dictValue = {
-          Str: {
-            value: entryValue,
-          },
-        };
-      }
-      worldOptionJson[entry.id as keyof WorldOption] = dictValue;
+      result[entry.id] = entries[entry.id] ?? entry.defaultValue;
     });
-    return worldOptionJson;
+    return result;
   };
 
-  const deserializeEntriesFromGvasJson = (gvas: Gvas) => {
-    if (!gvas) {
-      toast.error(t(I18nStr.toast.invalidFile), {
-        description: t(I18nStr.toast.invalidFileDescription),
+  const applyLoadedSettings = (loadedSettings: Record<string, unknown>) => {
+    const nextEntries: Record<string, string> = {};
+    Object.entries(loadedSettings).forEach(([key, value]) => {
+      if (key in ENTRIES && isConfigurableEntry(key) && typeof value !== "undefined" && value !== null) {
+        nextEntries[key] = String(value);
+      }
+    });
+    setEntries(nextEntries);
+  };
+
+  const createConfigCode = async () => {
+    setIsSavingConfig(true);
+    try {
+      const response = await fetch("/api/configs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          settings: getConfigurableSettings(),
+        }),
       });
-      return;
-    }
-    const worldOptionStructDictJson = gvas.root.properties.OptionWorldData.Struct.value.Struct.Settings.Struct.value.Struct;
-    const newEntries = { ...entries };
-    Object.entries(worldOptionStructDictJson).forEach(([key, value]) => {
-      if (key in ENTRIES) {
-        const entry = ENTRIES[key];
-        // const valueRecord = value as Record<string, { value: string, array_type?: string }>;
-        const valueRecord = value ;
-        let entryValue: number | boolean | string | undefined = undefined;
-        if ("Enum" in valueRecord) {
-          entryValue = valueRecord.Enum.value.split("::")[1];
-        } else if ("Int" in valueRecord ) {
-          entryValue = valueRecord.Int.value;
-        } else if ("Float" in valueRecord) {
-          entryValue = valueRecord.Float?.value;
-        } else if ("Bool" in valueRecord) {
-          entryValue = valueRecord.Bool.value ? "True" : "False";
-        } else if ("Str" in valueRecord) {
-          entryValue = valueRecord.Str.value;
-        } else if ("Array" in valueRecord && valueRecord.Array.array_type === "EnumProperty") {
-          entryValue = valueRecord.Array.value.Base.Enum.map((e: string) => e.split("::")[1]).join(",");
-        }
-        newEntries[entry.id] = entryValue?.toString() ?? entry.defaultValue;
+      const data = (await response.json().catch(() => ({}))) as ConfigCodeResponse & { error?: string };
+      if (!response.ok || !data.code) {
+        throw new Error(data.error ?? "保存配置失败");
       }
-    });
-    setEntries(newEntries);
-  };
-
-  const openSavFile = async (f: File) => {
-    const result = await analyzeFile(f, (e) => {
+      setConfigCode(data.code);
+      setConfigCodeInput(data.code);
+      toast.success("配置码已生成", { description: `${data.code} 永久有效。` });
+    } catch (e) {
       console.error(e);
-      toast.error(t(I18nStr.toast.invalidFile), {
-        description: t(I18nStr.toast.invalidFileDescription),
-      });
-    }).catch((e) => {
-      console.error(e);
-    });
-    if (!result) {
-      return;
+      toast.error("生成配置码失败", { description: e instanceof Error ? e.message : "请稍后重试。" });
+    } finally {
+      setIsSavingConfig(false);
     }
-    // console.log(result);
-    // console.log('magic: ' + result.magic);
-    const gvas: Gvas = result.gvas ?? DEFAULT_WORLDOPTION_SAV.gvas;
-    toast.success(t(I18nStr.toast.savFileLoaded), {
-      description: t(I18nStr.toast.savFileLoadedDescription),
-    });
-    deserializeEntriesFromGvasJson(gvas);
   };
 
-  const saveFile = () => {
-    const gvasToSave: Gvas = LosslessJSON.parse(LosslessJSON.stringify(DEFAULT_WORLDOPTION_SAV.gvas)!) as Gvas;
-    gvasToSave.root.properties.OptionWorldData.Struct.value.Struct.Settings.Struct.value.Struct = serializeEntriesToWorldOptionJson() as WorldOption;
-    writeFile(
-      {
-        magic: 828009552,
-        gvas: gvasToSave,
-      },
-      "WorldOption.sav",
-      () => {
-        toast.success(t(I18nStr.toast.saved), {
-          description: t(I18nStr.toast.savedDescription),
-        });
-      },
-      (e) => {
-        console.error(e);
-        toast.error(t(I18nStr.toast.saveFailed), {
-          description: t(I18nStr.toast.saveFailedDescription),
-        });
+  const loadConfigCode = async () => {
+    const normalizedCode = normalizeConfigCode(configCodeInput);
+    if (!CONFIG_CODE_PATTERN.test(normalizedCode)) {
+      toast.error("配置码无效", { description: "请输入类似 ABCD-1234 的 4-4 位字母数字配置码。" });
+      return;
+    }
+    setIsLoadingConfig(true);
+    try {
+      const response = await fetch(`/api/configs/${encodeURIComponent(normalizedCode)}`);
+      const data = (await response.json().catch(() => ({}))) as ConfigCodeResponse & { error?: string };
+      if (!response.ok || !data.settings) {
+        throw new Error(data.error ?? "未找到配置码。");
       }
-    );
+      applyLoadedSettings(data.settings);
+      setConfigCode(data.code);
+      setConfigCodeInput(data.code);
+      toast.success("配置已读取", { description: `已加载配置码 ${data.code}。` });
+    } catch (e) {
+      console.error(e);
+      toast.error("读取配置码失败", { description: e instanceof Error ? e.message : "请检查配置码后重试。" });
+    } finally {
+      setIsLoadingConfig(false);
+    }
   };
 
-  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) {
-      toast.error(t(I18nStr.toast.invalidFile), {
-        description: t(I18nStr.toast.invalidFileDescription),
-      });
-      return;
+  const genInput = (id: string) => {
+    if (!isConfigurableEntry(id)) {
+      return null;
     }
-
-    if (file.size > 102400) {
-      toast.error(t(I18nStr.toast.fileTooLarge), {
-        description: t(I18nStr.toast.fileTooLargeDescription),
-      });
-      return;
-    }
-
-    // if (file.name !== 'WorldOption.sav') {
-    //     toast.error(t('toast.invalidFileName'), {
-    //         description: t('toast.invalidFileNameDescription'),
-    //     })
-    //     return;
-    // }
-    if (file.name.endsWith(".ini")) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        if (!e.target?.result) {
-          toast.error(t(I18nStr.toast.invalidFile), {
-            description: t(I18nStr.toast.invalidFileDescription),
-          });
-          return;
-        }
-        deserializeEntriesFromIni(e.target.result as string);
-      };
-      reader.readAsText(file);
-      setFileMode(FileMode.INI);
-      return;
-    }
-    openSavFile(file)
-      .then(() => {
-        // console.log("File opened");
-        if (fileInputRef.current) {
-          fileInputRef.current.value = "";
-          setFileMode(FileMode.SAV);
-        }
-      })
-      .catch((e) => {
-        console.error(e);
-        toast.error(t(I18nStr.toast.invalidFile), {
-          description: t(I18nStr.toast.invalidFileDescription),
-        });
-      });
-  };
-
-  const genInput = (id: string, disabled = false) => {
     const entry = ENTRIES[id];
     if (!entry) {
       return null;
@@ -424,7 +214,7 @@ function App() {
       return (
         <MultiSelectInput
           key={id}
-          dKey={entry.id as "CrossplayPlatforms"}
+          dKey={entry.id as "CrossplayPlatforms" | "DenyTechnologyList"}
           selectedLabels={labelValues}
           onLabelsChange={(labelNames: string[]) => {
             onStateChanged(entry.id)({
@@ -454,7 +244,6 @@ function App() {
             });
           }}
           type={entry.type}
-          disabled={disabled}
           difficultyType={entry.difficultyType}
         />
       );
@@ -467,12 +256,10 @@ function App() {
           key={id}
           checked={entryValue === "True"}
           onCheckedChange={(e) => {
-            // console.log(e);
             onStateChanged(id)({
               target: { value: e ? "True" : "False" },
             });
           }}
-          disabled={disabled}
         />
       );
     }
@@ -483,125 +270,73 @@ function App() {
         key={id}
         value={entryValue}
         onChange={onStateChanged(id)}
-        disabled={disabled}
         multiline={entry.id === "ServerDescription"}
         {...(entry.type === "integer" ? { type: "number" } : {})}
       />
     );
   };
 
-  const isEntryValid = useCallback((entryKey: string) => fileMode === FileMode.INI || VALID_WORLDOPTION_KEYS.indexOf(entryKey) >= 0, [fileMode]);
+  const serverSettings = ServerSettings.filter(isConfigurableEntry).map((k) => genInput(k));
 
-  const serverSettings = ServerSettings.map((k) => genInput(k, !isEntryValid(k)));
+  const inGameSettings = InGameSettings.filter(isConfigurableEntry).map((k) => genInput(k));
 
-  const inGameSettings = InGameSettings.map((k) => genInput(k, !isEntryValid(k)));
+  const advancedSettings = AdvancedSettings.filter(isConfigurableEntry).map((k) => genInput(k));
 
-  const advancedSettings = AdvancedSettings.map((k) => genInput(k, !isEntryValid(k)));
-
-  const settingsText =
-    fileMode === FileMode.INI
-      ? `[/Script/Pal.PalGameWorldSettings]\nOptionSettings=(${serializeEntriesToIni()})`
-      : LosslessJSON.stringify(serializeEntriesToWorldOptionJson(), null, 4) ?? "";
-
-  const copyToClipboard = () => {
-    const copyText = (text: string) => {
-      if (navigator.clipboard) {
-        return navigator.clipboard.writeText(text);
-      } else if (document.queryCommandSupported?.('copy')) {
-        const textarea = document.createElement('textarea');
-        textarea.value = text;
-        textarea.style.position = 'fixed';
-        textarea.style.opacity = '0';
-        document.body.appendChild(textarea);
-        textarea.select();
-        
-        try {
-          document.execCommand('copy');
-          return Promise.resolve();
-        } catch (e) {
-          // console.error(e);
-          return Promise.reject(e);
-        } finally {
-          document.body.removeChild(textarea);
-        }
-      }
-      return Promise.reject(new Error('Copy failed'));
-    };
-
-    copyText(settingsText)
-      .then(() => toast.success(t(I18nStr.toast.copied), { description: t(I18nStr.toast.copiedDescription) }))
-      .catch(() => toast.error(t(I18nStr.toast.copyFailed), { description: t(I18nStr.toast.copyFailedDescription) }));
-  };
-
-  const readFromClipboard = () => {
-    if (navigator.clipboard) {
-      navigator.clipboard
-        .readText()
-        .then((e) => deserializeEntriesFromIni(e))
-        .catch(() => {
-          toast.error(t(I18nStr.toast.loadFailed), {
-            description: t(I18nStr.toast.loadFailedDescription),
-          })
-        });
-    } else {
-      setPasteDialogOpen(true);
+  const publicBaseUrl = typeof window === "undefined" ? "" : window.location.origin;
+  const generatedScript = useMemo(() => {
+    if (!configCode) {
+      return "";
     }
-  };
+    return `#!/usr/bin/env sh
+set -eu
+
+export PAL_CONF_BASE_URL="\${PAL_CONF_BASE_URL:-${publicBaseUrl}}"
+export PAL_CONF_CODE="\${PAL_CONF_CODE:-${configCode}}"
+
+: "\${SERVER_PORT:?请设置 SERVER_PORT}"
+: "\${SERVER_NAME:?请设置 SERVER_NAME}"
+: "\${ADMIN_PASSWORD:?请设置 ADMIN_PASSWORD}"
+RCON_PORT="\${RCON_PORT:-25575}"
+
+if [ ! -x ./PalworldServerConfigParser ]; then
+  curl -fsSL "\${PAL_CONF_BASE_URL%/}/scripts/PalworldServerConfigParser" -o ./PalworldServerConfigParser
+  chmod +x ./PalworldServerConfigParser
+fi
+
+./palstarted.sh
+./PalworldServerConfigParser
+
+(
+  while read -r cmd; do
+    rcon -s -a "localhost:\${RCON_PORT}" -p "\${ADMIN_PASSWORD}" "\${cmd}"
+  done
+) < /dev/stdin &
+
+set -- /home/container/Pal/Binaries/Linux/PalServer-Linux-Shipping Pal \\
+  -publiclobby \\
+  -useperfthreads \\
+  -NoAsyncLoadingThread \\
+  -UseMultithreadForDS \\
+  "-port=\${SERVER_PORT}" \\
+  "-servername=\${SERVER_NAME}" \\
+  "-adminpassword=\${ADMIN_PASSWORD}" \\
+  -rcon
+
+if [ -n "\${SERVER_PASSWORD:-}" ]; then
+  set -- "$@" "-serverpassword=\${SERVER_PASSWORD}"
+fi
+
+exec "$@"
+`;
+  }, [configCode, publicBaseUrl]);
 
   useEffect(() => {
     document.title = t(I18nStr.title);
   }, [t]);
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // const code = e.which || e.keyCode;
-      // const charCode = String.fromCharCode(code).toLowerCase();
-      const charCode = e.key.toLowerCase();
-      if ((e.ctrlKey || e.metaKey) && charCode === "s") {
-        e.preventDefault();
-        saveFile();
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-
-    return () => window.removeEventListener("keydown", handleKeyDown);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   return (
     <>
-      <main
-        className="flex flex-col items-center min-h-screen bg-gray-100 dark:bg-gray-900 p-4"
-        onDragOver={(e) => {
-          e.preventDefault();
-          setShowUploadPrompt(true);
-        }}
-        onDragLeave={(e) => {
-          e.preventDefault();
-          if (e.currentTarget.contains(e.relatedTarget as Node)) return;
-          setShowUploadPrompt(false);
-        }}
-        onDrop={(e) => {
-          e.preventDefault();
-          setShowUploadPrompt(false);
-          if (fileInputRef.current) {
-            fileInputRef.current.files = e.dataTransfer.files;
-            fileInputRef.current.dispatchEvent(new Event("change", { bubbles: true }));
-          }
-        }}
-      >
-        {showUploadPrompt && (
-          <div className="fixed top-0 left-0 w-full h-full flex items-center justify-center bg-black bg-opacity-50 z-50">
-            <div className="text-white flex items-center justify-center">
-              <FileUp className="mr-2" />
-              <span className="text-lg">
-                <Trans i18nKey={I18nStr.drag} />
-              </span>
-            </div>
-          </div>
-        )}
-
+      <main className="flex flex-col items-center min-h-screen bg-gray-100 dark:bg-gray-900 p-4">
         <Toaster richColors />
         <Card className="w-full max-w-3xl">
           <CardHeader>
@@ -609,15 +344,14 @@ function App() {
               <div className="leading-10">
                 <Trans i18nKey={I18nStr.title} />
                 <Badge variant="secondary" className="ml-2">
-                <a
-                  href="https://docs.palworldgame.com/settings-and-operation/configuration/"
-                  className="underline"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  {configVersion}
-                </a>
-
+                  <a
+                    href="https://docs.palworldgame.com/settings-and-operation/configuration/"
+                    className="underline"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {configVersion}
+                  </a>
                 </Badge>
               </div>
               <DropdownMenu>
@@ -632,9 +366,6 @@ function App() {
                     onValueChange={(value) => {
                       i18n
                         .changeLanguage(value)
-                        .then(() => {
-                          // console.log("Language changed to " + value)
-                        })
                         .catch((e) => {
                           console.error(e);
                         });
@@ -682,7 +413,7 @@ function App() {
               </DropdownMenu>
             </CardTitle>
             <CardDescription>
-              <Trans i18nKey={I18nStr.introduction} />
+              当前页面只生成配置码。服务器端口、服务器名称、服务器密码、管理员密码请通过启动脚本环境变量传入。
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4" ref={tabRef}>
@@ -712,112 +443,98 @@ function App() {
             </Tabs>
           </CardContent>
         </Card>
+
         <Card className="w-full max-w-3xl mt-8 sticky bottom-0 z-10 shadow-lg">
           <CardHeader>
-            <Tabs value={fileMode} className="flex flex-col w-full min-h-10" onValueChange={(v) => setFileMode(v as FileMode)}>
-              <TabsList>
-                <TabsTrigger className="w-[50%]" value={FileMode.INI}>
-                  PalWorldSettings.ini
-                </TabsTrigger>
-                <TabsTrigger className="w-[50%]" value={FileMode.SAV}>
-                  WorldOption.sav
-                </TabsTrigger>
-              </TabsList>
-              <Input className="hidden w-[50%]" id="file-upload" type="file" ref={fileInputRef} onChange={handleFileInput} />
-              <div className="mt-4">
-                <TabsContent value={FileMode.INI} className="flex justify-between items-center gap-4 mt-0">
-                  <Button className="mr-auto" onClick={readFromClipboard}>
-                    <Trans i18nKey={I18nStr.paste} />
-                  </Button>
-                  <div className="text-sm text-muted-foreground">
-                    <Trans i18nKey={I18nStr.dragAndDrop} />
-                  </div>
-                  <Button className="ml-auto" onClick={copyToClipboard}>
-                    <Trans i18nKey={I18nStr.copy} />
-                  </Button>
-                </TabsContent>
-                <TabsContent value={FileMode.SAV} className="flex justify-between items-center gap-4 mt-0">
-                  <Button onClick={() => fileInputRef.current?.click()}>
-                    <Trans i18nKey={I18nStr.upload} />
-                  </Button>
-                  <div className="text-sm text-muted-foreground">
-                    <Trans i18nKey={I18nStr.dragAndDrop} />
-                  </div>
-                  <Button className="" onClick={saveFile}>
-                    <Trans i18nKey={I18nStr.download} />
-                  </Button>
-                </TabsContent>
-              </div>
-            </Tabs>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <KeyRound className="h-5 w-5" />
+              配置码
+            </CardTitle>
+            <CardDescription>配置码永久有效，可在网页读取，也可交给服务器启动脚本下载配置文件。</CardDescription>
           </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Input
+                value={configCodeInput}
+                onChange={(e) => setConfigCodeInput(normalizeConfigCode(e.target.value))}
+                placeholder="ABCD-1234"
+                className="font-mono"
+              />
+              <Button variant="secondary" onClick={() => void loadConfigCode()} disabled={isLoadingConfig}>
+                读取配置码
+              </Button>
+              <Button onClick={() => void createConfigCode()} disabled={isSavingConfig}>
+                生成配置码
+              </Button>
+            </div>
+            {configCode && (
+              <div className="flex flex-col gap-3 rounded-md border p-3 sm:flex-row sm:items-center">
+                <div className="text-sm text-muted-foreground">当前配置码</div>
+                <div className="font-mono text-lg font-semibold tracking-widest">{configCode}</div>
+                <Button
+                  className="sm:ml-auto"
+                  variant="outline"
+                  onClick={() =>
+                    void copyText(configCode)
+                      .then(() => toast.success("配置码已复制"))
+                      .catch(() => toast.error("复制失败"))
+                  }
+                >
+                  <Copy className="mr-2 h-4 w-4" />
+                  复制
+                </Button>
+              </div>
+            )}
+          </CardContent>
         </Card>
+
         <Alert className="w-full max-w-3xl mt-8 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-md">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle>
-            <Trans
-              i18nKey={I18nStr.usingSettingsFile}
-              defaults="You are using {{settingsFile}}"
-              values={{ settingsFile: fileMode === FileMode.INI ? "PalWorldSettings.ini" : "WorldOption.sav" }}
-            />
-          </AlertTitle>
+          <AlertTitle>启动参数不写入配置码</AlertTitle>
           <AlertDescription className="text-wrap break-all whitespace-pre-wrap">
-            {fileMode === FileMode.INI ? (
-              <>
-                Windows: steamapps/common/PalServer/Pal/Saved/Config/WindowsServer/PalWorldSettings.ini
-                <br />
-                Linux: steamapps/common/PalServer/Pal/Saved/Config/LinuxServer/PalWorldSettings.ini
-                <br />
-                <Trans i18nKey={I18nStr.iniFileWarning} />
-              </>
-            ) : (
-              <>
-                Windows & Linux: steamapps/common/PalServer/Pal/Saved/SaveGames/0/.../WorldOption.sav
-                <br />
-                <Trans i18nKey={I18nStr.savFileWarning} />
-              </>
-            )}
+            已排除 PublicPort、ServerName、ServerPassword、AdminPassword。请用 SERVER_PORT、SERVER_NAME、SERVER_PASSWORD、ADMIN_PASSWORD 环境变量提供给启动脚本。
           </AlertDescription>
         </Alert>
-        <div className="w-full max-w-3xl mt-8 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-md">
-          <pre className="text-wrap break-all whitespace-pre-wrap text-sm text-gray-800 dark:text-gray-200">{settingsText}</pre>
-        </div>
+
+        <Card className="w-full max-w-3xl mt-8">
+          <CardHeader>
+            <CardTitle className="text-lg">启动脚本</CardTitle>
+            <CardDescription>生成配置码后复制这段脚本。脚本会下载 PalworldServerConfigParser，并用配置码替换服务器上的 PalWorldSettings.ini。</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Textarea
+              readOnly
+              value={generatedScript || "生成配置码后，这里会出现可复制的启动脚本。"}
+              className="min-h-[360px] font-mono text-xs"
+            />
+            <Button
+              variant="outline"
+              disabled={!generatedScript}
+              onClick={() =>
+                void copyText(generatedScript)
+                  .then(() => toast.success("启动脚本已复制"))
+                  .catch(() => toast.error("复制失败"))
+              }
+            >
+              <Copy className="mr-2 h-4 w-4" />
+              复制启动脚本
+            </Button>
+          </CardContent>
+        </Card>
+
         <div className="w-full max-w-3xl flex justify-center pt-2">
-          2024-{`${new Date().getFullYear()}`} @Bluefissure
+          2024-{`${new Date().getFullYear()}`} @LectWolf
           <a
-            href="https://github.com/Bluefissure/pal-conf"
+            href="https://github.com/LectWolf/pal-conf"
             className="pl-2 font-medium text-primary underline underline-offset-4 top-2"
             target="_blank"
             rel="noreferrer"
           >
             Github
           </a>
-          {__COMMIT_HASH__ && (`@${__COMMIT_HASH__}`)}
+          {__COMMIT_HASH__ && `@${__COMMIT_HASH__}`}
         </div>
       </main>
-      <Dialog open={pasteDialogOpen} onOpenChange={setPasteDialogOpen}>
-        <DialogContent>
-          <DialogTitle>{t(I18nStr.paste)}</DialogTitle>
-          <Textarea
-            value={pasteContent}
-            onChange={(e) => setPasteContent(e.target.value)}
-            className="min-h-[200px]"
-          />
-          <div className="flex justify-end gap-4">
-            <Button variant="outline" onClick={() => setPasteDialogOpen(false)}>
-              <Trans i18nKey={I18nStr.cancel} />
-            </Button>
-            <Button
-              onClick={() => {
-                deserializeEntriesFromIni(pasteContent);
-                setPasteDialogOpen(false);
-                setPasteContent("");
-              }}
-            >
-              <Trans i18nKey={I18nStr.confirm} />
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </>
   );
 }

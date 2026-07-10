@@ -1,0 +1,525 @@
+{
+  "generatedFrom": "src/consts/entries.tsx",
+  "entries": [
+    {
+      "id": "Difficulty",
+      "defaultValue": "None",
+      "type": "select"
+    },
+    {
+      "id": "RandomizerType",
+      "defaultValue": "None",
+      "type": "select"
+    },
+    {
+      "id": "RandomizerSeed",
+      "defaultValue": "",
+      "type": "string"
+    },
+    {
+      "id": "bIsRandomizerPalLevelRandom",
+      "defaultValue": "False",
+      "type": "boolean"
+    },
+    {
+      "id": "DayTimeSpeedRate",
+      "defaultValue": "1.000000",
+      "type": "float"
+    },
+    {
+      "id": "NightTimeSpeedRate",
+      "defaultValue": "1.000000",
+      "type": "float"
+    },
+    {
+      "id": "ExpRate",
+      "defaultValue": "1.000000",
+      "type": "float"
+    },
+    {
+      "id": "PalCaptureRate",
+      "defaultValue": "1.000000",
+      "type": "float"
+    },
+    {
+      "id": "PalSpawnNumRate",
+      "defaultValue": "1.000000",
+      "type": "float"
+    },
+    {
+      "id": "PalDamageRateAttack",
+      "defaultValue": "1.000000",
+      "type": "float"
+    },
+    {
+      "id": "PalDamageRateDefense",
+      "defaultValue": "1.000000",
+      "type": "float"
+    },
+    {
+      "id": "PlayerDamageRateAttack",
+      "defaultValue": "1.000000",
+      "type": "float"
+    },
+    {
+      "id": "PlayerDamageRateDefense",
+      "defaultValue": "1.000000",
+      "type": "float"
+    },
+    {
+      "id": "PlayerStomachDecreaceRate",
+      "defaultValue": "1.000000",
+      "type": "float"
+    },
+    {
+      "id": "PlayerStaminaDecreaceRate",
+      "defaultValue": "1.000000",
+      "type": "float"
+    },
+    {
+      "id": "PlayerAutoHPRegeneRate",
+      "defaultValue": "1.000000",
+      "type": "float"
+    },
+    {
+      "id": "PlayerAutoHpRegeneRateInSleep",
+      "defaultValue": "1.000000",
+      "type": "float"
+    },
+    {
+      "id": "PalStomachDecreaceRate",
+      "defaultValue": "1.000000",
+      "type": "float"
+    },
+    {
+      "id": "PalStaminaDecreaceRate",
+      "defaultValue": "1.000000",
+      "type": "float"
+    },
+    {
+      "id": "PalAutoHPRegeneRate",
+      "defaultValue": "1.000000",
+      "type": "float"
+    },
+    {
+      "id": "PalAutoHpRegeneRateInSleep",
+      "defaultValue": "1.000000",
+      "type": "float"
+    },
+    {
+      "id": "BuildObjectHpRate",
+      "defaultValue": "1.000000",
+      "type": "float"
+    },
+    {
+      "id": "BuildObjectDamageRate",
+      "defaultValue": "1.000000",
+      "type": "float"
+    },
+    {
+      "id": "BuildObjectDeteriorationDamageRate",
+      "defaultValue": "1.000000",
+      "type": "float"
+    },
+    {
+      "id": "CollectionDropRate",
+      "defaultValue": "1.000000",
+      "type": "float"
+    },
+    {
+      "id": "CollectionObjectHpRate",
+      "defaultValue": "1.000000",
+      "type": "float"
+    },
+    {
+      "id": "CollectionObjectRespawnSpeedRate",
+      "defaultValue": "1.000000",
+      "type": "float"
+    },
+    {
+      "id": "EnemyDropItemRate",
+      "defaultValue": "1.000000",
+      "type": "float"
+    },
+    {
+      "id": "DeathPenalty",
+      "defaultValue": "All",
+      "type": "select"
+    },
+    {
+      "id": "bEnablePlayerToPlayerDamage",
+      "defaultValue": "False",
+      "type": "boolean"
+    },
+    {
+      "id": "bEnableFriendlyFire",
+      "defaultValue": "False",
+      "type": "boolean"
+    },
+    {
+      "id": "bEnableInvaderEnemy",
+      "defaultValue": "True",
+      "type": "boolean"
+    },
+    {
+      "id": "EnablePredatorBossPal",
+      "defaultValue": "True",
+      "type": "boolean"
+    },
+    {
+      "id": "bActiveUNKO",
+      "defaultValue": "False",
+      "type": "boolean"
+    },
+    {
+      "id": "bEnableAimAssistPad",
+      "defaultValue": "True",
+      "type": "boolean"
+    },
+    {
+      "id": "bEnableAimAssistKeyboard",
+      "defaultValue": "False",
+      "type": "boolean"
+    },
+    {
+      "id": "DropItemMaxNum",
+      "defaultValue": "3000",
+      "type": "integer"
+    },
+    {
+      "id": "DropItemMaxNum_UNKO",
+      "defaultValue": "100",
+      "type": "integer"
+    },
+    {
+      "id": "BaseCampMaxNum",
+      "defaultValue": "128",
+      "type": "integer"
+    },
+    {
+      "id": "BaseCampMaxNumInGuild",
+      "defaultValue": "3",
+      "type": "integer"
+    },
+    {
+      "id": "BaseCampWorkerMaxNum",
+      "defaultValue": "15",
+      "type": "integer"
+    },
+    {
+      "id": "DropItemAliveMaxHours",
+      "defaultValue": "1.000000",
+      "type": "float"
+    },
+    {
+      "id": "bAutoResetGuildNoOnlinePlayers",
+      "defaultValue": "False",
+      "type": "boolean"
+    },
+    {
+      "id": "AutoResetGuildTimeNoOnlinePlayers",
+      "defaultValue": "72.000000",
+      "type": "float"
+    },
+    {
+      "id": "GuildPlayerMaxNum",
+      "defaultValue": "20",
+      "type": "integer"
+    },
+    {
+      "id": "PalEggDefaultHatchingTime",
+      "defaultValue": "72.000000",
+      "type": "float"
+    },
+    {
+      "id": "WorkSpeedRate",
+      "defaultValue": "1.000000",
+      "type": "float"
+    },
+    {
+      "id": "AutoSaveSpan",
+      "defaultValue": "30.000000",
+      "type": "float"
+    },
+    {
+      "id": "CrossplayPlatforms",
+      "defaultValue": "Steam,Xbox,PS5,Mac",
+      "type": "array"
+    },
+    {
+      "id": "LogFormatType",
+      "defaultValue": "Text",
+      "type": "select"
+    },
+    {
+      "id": "bIsMultiplay",
+      "defaultValue": "False",
+      "type": "boolean"
+    },
+    {
+      "id": "bIsPvP",
+      "defaultValue": "False",
+      "type": "boolean"
+    },
+    {
+      "id": "bHardcore",
+      "defaultValue": "False",
+      "type": "boolean"
+    },
+    {
+      "id": "bPalLost",
+      "defaultValue": "False",
+      "type": "boolean"
+    },
+    {
+      "id": "bCharacterRecreateInHardcore",
+      "defaultValue": "False",
+      "type": "boolean"
+    },
+    {
+      "id": "bCanPickupOtherGuildDeathPenaltyDrop",
+      "defaultValue": "False",
+      "type": "boolean"
+    },
+    {
+      "id": "bEnableNonLoginPenalty",
+      "defaultValue": "True",
+      "type": "boolean"
+    },
+    {
+      "id": "bEnableFastTravel",
+      "defaultValue": "True",
+      "type": "boolean"
+    },
+    {
+      "id": "bIsStartLocationSelectByMap",
+      "defaultValue": "True",
+      "type": "boolean"
+    },
+    {
+      "id": "bExistPlayerAfterLogout",
+      "defaultValue": "False",
+      "type": "boolean"
+    },
+    {
+      "id": "bEnableDefenseOtherGuildPlayer",
+      "defaultValue": "False",
+      "type": "boolean"
+    },
+    {
+      "id": "bInvisibleOtherGuildBaseCampAreaFX",
+      "defaultValue": "False",
+      "type": "boolean"
+    },
+    {
+      "id": "bBuildAreaLimit",
+      "defaultValue": "False",
+      "type": "boolean"
+    },
+    {
+      "id": "ItemWeightRate",
+      "defaultValue": "1.000000",
+      "type": "float"
+    },
+    {
+      "id": "bShowPlayerList",
+      "defaultValue": "False",
+      "type": "boolean"
+    },
+    {
+      "id": "CoopPlayerMaxNum",
+      "defaultValue": "4",
+      "type": "integer"
+    },
+    {
+      "id": "ServerPlayerMaxNum",
+      "defaultValue": "32",
+      "type": "integer"
+    },
+    {
+      "id": "ServerDescription",
+      "defaultValue": "",
+      "type": "string"
+    },
+    {
+      "id": "PublicIP",
+      "defaultValue": "",
+      "type": "string"
+    },
+    {
+      "id": "RCONEnabled",
+      "defaultValue": "False",
+      "type": "boolean"
+    },
+    {
+      "id": "RCONPort",
+      "defaultValue": "25575",
+      "type": "integer"
+    },
+    {
+      "id": "RESTAPIEnabled",
+      "defaultValue": "False",
+      "type": "boolean"
+    },
+    {
+      "id": "RESTAPIPort",
+      "defaultValue": "8212",
+      "type": "integer"
+    },
+    {
+      "id": "bIsUseBackupSaveData",
+      "defaultValue": "True",
+      "type": "boolean"
+    },
+    {
+      "id": "Region",
+      "defaultValue": "",
+      "type": "string"
+    },
+    {
+      "id": "bUseAuth",
+      "defaultValue": "True",
+      "type": "boolean"
+    },
+    {
+      "id": "BanListURL",
+      "defaultValue": "https://api.palworldgame.com/api/banlist.txt",
+      "type": "string"
+    },
+    {
+      "id": "SupplyDropSpan",
+      "defaultValue": "180",
+      "type": "integer"
+    },
+    {
+      "id": "ChatPostLimitPerMinute",
+      "defaultValue": "10",
+      "type": "integer"
+    },
+    {
+      "id": "MaxBuildingLimitNum",
+      "defaultValue": "0",
+      "type": "integer"
+    },
+    {
+      "id": "ServerReplicatePawnCullDistance",
+      "defaultValue": "15000.000000",
+      "type": "float"
+    },
+    {
+      "id": "bAllowGlobalPalboxExport",
+      "defaultValue": "True",
+      "type": "boolean"
+    },
+    {
+      "id": "bAllowGlobalPalboxImport",
+      "defaultValue": "False",
+      "type": "boolean"
+    },
+    {
+      "id": "EquipmentDurabilityDamageRate",
+      "defaultValue": "1.000000",
+      "type": "float"
+    },
+    {
+      "id": "ItemContainerForceMarkDirtyInterval",
+      "defaultValue": "1.000000",
+      "type": "float"
+    },
+    {
+      "id": "ItemCorruptionMultiplier",
+      "defaultValue": "1.000000",
+      "type": "float"
+    },
+    {
+      "id": "bEnableFastTravelOnlyBaseCamp",
+      "defaultValue": "False",
+      "type": "boolean"
+    },
+    {
+      "id": "bAllowClientMod",
+      "defaultValue": "True",
+      "type": "boolean"
+    },
+    {
+      "id": "bIsShowJoinLeftMessage",
+      "defaultValue": "True",
+      "type": "boolean"
+    },
+    {
+      "id": "DenyTechnologyList",
+      "defaultValue": "",
+      "type": "array"
+    },
+    {
+      "id": "GuildRejoinCooldownMinutes",
+      "defaultValue": "0",
+      "type": "integer"
+    },
+    {
+      "id": "BlockRespawnTime",
+      "defaultValue": "5.000000",
+      "type": "float"
+    },
+    {
+      "id": "RespawnPenaltyDurationThreshold",
+      "defaultValue": "0.000000",
+      "type": "float"
+    },
+    {
+      "id": "RespawnPenaltyTimeScale",
+      "defaultValue": "2.000000",
+      "type": "float"
+    },
+    {
+      "id": "bDisplayPvPItemNumOnWorldMap_BaseCamp",
+      "defaultValue": "False",
+      "type": "boolean"
+    },
+    {
+      "id": "bDisplayPvPItemNumOnWorldMap_Player",
+      "defaultValue": "False",
+      "type": "boolean"
+    },
+    {
+      "id": "AdditionalDropItemWhenPlayerKillingInPvPMode",
+      "defaultValue": "PlayerDropItem",
+      "type": "string"
+    },
+    {
+      "id": "AdditionalDropItemNumWhenPlayerKillingInPvPMode",
+      "defaultValue": "1",
+      "type": "integer"
+    },
+    {
+      "id": "bAdditionalDropItemWhenPlayerKillingInPvPMode",
+      "defaultValue": "False",
+      "type": "boolean"
+    },
+    {
+      "id": "bAllowEnhanceStat_Health",
+      "defaultValue": "True",
+      "type": "boolean"
+    },
+    {
+      "id": "bAllowEnhanceStat_Attack",
+      "defaultValue": "True",
+      "type": "boolean"
+    },
+    {
+      "id": "bAllowEnhanceStat_Stamina",
+      "defaultValue": "True",
+      "type": "boolean"
+    },
+    {
+      "id": "bAllowEnhanceStat_Weight",
+      "defaultValue": "True",
+      "type": "boolean"
+    },
+    {
+      "id": "bAllowEnhanceStat_WorkSpeed",
+      "defaultValue": "True",
+      "type": "boolean"
+    }
+  ]
+}

@@ -14,4 +14,4 @@ WORKDIR /app
 # Install dependencies
 RUN pnpm install && pnpm run build
 
-CMD ["pnpm", "run", "preview"]
+CMD ["node", "server/index.mjs"]
