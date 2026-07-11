@@ -621,7 +621,7 @@ export const ENTRIES: Record<string, Entry> = {
   AdminPassword: {
     name: "Admin Password",
     id: "AdminPassword",
-    defaultValue: "",
+    defaultValue: "started",
     type: "string",
     desc: "Admin password",
   },

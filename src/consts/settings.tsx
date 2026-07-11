@@ -315,6 +315,8 @@ export const SettingGroups = [
     settings: [
       "ServerName",
       "ServerDescription",
+      "AdminPassword",
+      "ServerPassword",
       "ServerPlayerMaxNum",
       "CoopPlayerMaxNum",
       "AutoSaveSpan",

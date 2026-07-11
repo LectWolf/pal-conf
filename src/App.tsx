@@ -74,8 +74,6 @@ const CONFIG_CODE_PATTERN = /^[A-Z0-9]{4}-[A-Z0-9]{4}$/;
 const RESERVED_LAUNCH_SETTING_IDS = new Set([
   "PublicPort",
   "PublicIP",
-  "ServerPassword",
-  "AdminPassword",
   "RCONEnabled",
   "RCONPort",
   "RESTAPIEnabled",
@@ -100,6 +98,7 @@ const GROUP_ICONS = {
 
 type Group = (typeof SettingGroups)[number];
 type GroupIconName = Group["icon"];
+type GroupText = Pick<Group, "id" | "name" | "description">;
 type Entry = (typeof ENTRIES)[string];
 
 function isConfigurableEntry(id: string) {
@@ -153,6 +152,11 @@ function App() {
   const [isLoadingConfig, setIsLoadingConfig] = useState(false);
 
   const entryName = (id: string) => t(`entry.name.${id}`, { defaultValue: ENTRIES[id]?.name ?? id });
+  const sectionName = (section: (typeof SettingSections)[number]) =>
+    t(`section.${section.id}`, { defaultValue: section.name });
+  const groupName = (group: GroupText) => t(`group.${group.id}.name`, { defaultValue: group.name });
+  const groupDescription = (group: GroupText) =>
+    t(`group.${group.id}.description`, { defaultValue: group.description });
 
   const getEntryValue = (id: string) => entries[id] ?? ENTRIES[id]?.defaultValue ?? "";
 
@@ -181,7 +185,7 @@ function App() {
             return true;
           }
           const entry = ENTRIES[id];
-          return [id, entryName(id), entry.name, entry.desc ?? "", group.name, group.description]
+          return [id, entryName(id), entry.name, entry.desc ?? "", groupName(group), groupDescription(group)]
             .join(" ")
             .toLowerCase()
             .includes(normalizedQuery);
@@ -220,7 +224,7 @@ function App() {
 
   const resetAll = () => {
     setEntries({});
-    toast.success("已恢复默认配置");
+    toast.success(t("app.toastReset", { defaultValue: "已恢复默认配置" }));
   };
 
   const getConfigurableSettings = () => {
@@ -257,14 +261,21 @@ function App() {
       });
       const data = (await response.json().catch(() => ({}))) as ConfigCodeResponse & { error?: string };
       if (!response.ok || !data.code) {
-        throw new Error(data.error ?? "保存配置失败");
+        throw new Error(data.error ?? t("app.saveFailed", { defaultValue: "保存配置失败" }));
       }
       setConfigCode(data.code);
       setConfigCodeInput(data.code);
-      toast.success("配置码已生成", { description: `${data.code} 永久有效。` });
+      toast.success(t("app.toastCodeGenerated", { defaultValue: "配置码已生成" }), {
+        description: t("app.toastCodeGeneratedDescription", {
+          code: data.code,
+          defaultValue: `${data.code} 永久有效。`,
+        }),
+      });
     } catch (e) {
       console.error(e);
-      toast.error("生成配置码失败", { description: e instanceof Error ? e.message : "请稍后重试。" });
+      toast.error(t("app.toastCodeGenerateFailed", { defaultValue: "生成配置码失败" }), {
+        description: e instanceof Error ? e.message : t("app.tryLater", { defaultValue: "请稍后重试。" }),
+      });
     } finally {
       setIsSavingConfig(false);
     }
@@ -273,7 +284,9 @@ function App() {
   const loadConfigCode = async () => {
     const normalizedCode = normalizeConfigCode(configCodeInput);
     if (!CONFIG_CODE_PATTERN.test(normalizedCode)) {
-      toast.error("配置码无效", { description: "请输入类似 ABCD-1234 的 4-4 位字母数字配置码。" });
+      toast.error(t("app.toastInvalidCode", { defaultValue: "配置码无效" }), {
+        description: t("app.invalidCodeDescription", { defaultValue: "请输入类似 ABCD-1234 的 4-4 位字母数字配置码。" }),
+      });
       return;
     }
     setIsLoadingConfig(true);
@@ -281,15 +294,22 @@ function App() {
       const response = await fetch(`/api/configs/${encodeURIComponent(normalizedCode)}`);
       const data = (await response.json().catch(() => ({}))) as ConfigCodeResponse & { error?: string };
       if (!response.ok || !data.settings) {
-        throw new Error(data.error ?? "未找到配置码。");
+        throw new Error(data.error ?? t("app.codeNotFound", { defaultValue: "未找到配置码。" }));
       }
       applyLoadedSettings(data.settings);
       setConfigCode(data.code);
       setConfigCodeInput(data.code);
-      toast.success("配置已读取", { description: `已加载配置码 ${data.code}。` });
+      toast.success(t("app.toastCodeLoaded", { defaultValue: "配置已读取" }), {
+        description: t("app.toastCodeLoadedDescription", {
+          code: data.code,
+          defaultValue: `已加载配置码 ${data.code}。`,
+        }),
+      });
     } catch (e) {
       console.error(e);
-      toast.error("读取配置码失败", { description: e instanceof Error ? e.message : "请检查配置码后重试。" });
+      toast.error(t("app.toastCodeLoadFailed", { defaultValue: "读取配置码失败" }), {
+        description: e instanceof Error ? e.message : t("app.checkCodeAndRetry", { defaultValue: "请检查配置码后重试。" }),
+      });
     } finally {
       setIsLoadingConfig(false);
     }
@@ -344,7 +364,6 @@ function App() {
           id={id}
           key={id}
           value={Number(value)}
-          defaultValue={Number(entry.defaultValue)}
           minValue={minValue}
           maxValue={maxValue}
           step={step}
@@ -427,23 +446,23 @@ function App() {
                 </a>
               </Badge>
             </div>
-            <p>按玩法分类调整配置，生成配置码后交给服务器启动配置使用。</p>
+            <p>{t("app.subtitle", { defaultValue: "按玩法分类调整配置，生成配置码后交给服务器启动配置使用。" })}</p>
           </div>
         </div>
 
-        <label className="pal-search" aria-label="搜索配置项">
+        <label className="pal-search" aria-label={t("app.searchAria", { defaultValue: "搜索配置项" })}>
           <Search className="h-4 w-4" />
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="搜索配置项、键名或说明"
+            placeholder={t("app.searchPlaceholder", { defaultValue: "搜索配置项、键名或说明" })}
             type="search"
           />
         </label>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button className="pal-language" variant="secondary" aria-label="切换语言">
+            <Button className="pal-language" variant="secondary" aria-label={t("app.languageAria", { defaultValue: "切换语言" })}>
               <Languages className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
@@ -499,10 +518,10 @@ function App() {
       </header>
 
       <div className="pal-layout">
-        <aside className="pal-sidebar" aria-label="配置分类">
+        <aside className="pal-sidebar" aria-label={t("app.categoryAria", { defaultValue: "配置分类" })}>
           {visibleSections.map((section) => (
             <div className="pal-nav-section" key={section.id}>
-              <p>{section.name}</p>
+              <p>{sectionName(section)}</p>
               {section.groups.map((group) => (
                 <button
                   className={activeGroup === group.id ? "active" : ""}
@@ -512,7 +531,7 @@ function App() {
                 >
                   <span>
                     {renderGroupIcon(group.icon)}
-                    {group.name}
+                    {groupName(group)}
                   </span>
                   {changedByGroup[group.id] > 0 && <strong>{changedByGroup[group.id]}</strong>}
                 </button>
@@ -521,28 +540,28 @@ function App() {
           ))}
         </aside>
 
-        <section className="pal-content" aria-label="配置项">
+        <section className="pal-content" aria-label={t("app.settingsAria", { defaultValue: "配置项" })}>
           <div className="pal-overview">
             <div>
               <span>{configurableSettingCount}</span>
-              <p>全部配置</p>
+              <p>{t("app.totalSettings", { defaultValue: "全部配置" })}</p>
             </div>
             <div>
               <span>{changedIds.size}</span>
-              <p>已修改</p>
+              <p>{t("app.changedSettings", { defaultValue: "已修改" })}</p>
             </div>
             <div>
               <span>{visibleSettingCount}</span>
-              <p>当前显示</p>
+              <p>{t("app.visibleSettings", { defaultValue: "当前显示" })}</p>
             </div>
           </div>
 
           {visibleGroups.length === 0 ? (
             <div className="pal-empty">
               <Search className="h-6 w-6" />
-              <p>没有匹配的配置项</p>
+              <p>{t("app.noMatchedSettings", { defaultValue: "没有匹配的配置项" })}</p>
               <Button variant="secondary" onClick={() => setQuery("")}>
-                清除搜索
+                {t("app.clearSearch", { defaultValue: "清除搜索" })}
               </Button>
             </div>
           ) : (
@@ -551,11 +570,11 @@ function App() {
                 <div className="pal-group-head">
                   <div className="pal-group-icon">{renderGroupIcon(group.icon, "h-5 w-5")}</div>
                   <div>
-                    <h2>{group.name}</h2>
-                    <p>{group.description}</p>
+                    <h2>{groupName(group)}</h2>
+                    <p>{groupDescription(group)}</p>
                   </div>
                   <Badge variant="outline" className="ml-auto">
-                    {group.settings.length} 项
+                    {t("app.itemCount", { count: group.settings.length, defaultValue: `${group.settings.length} 项` })}
                   </Badge>
                 </div>
                 <div className="pal-setting-grid">
@@ -572,7 +591,7 @@ function App() {
                             onClick={() => resetEntry(id)}
                           >
                             <RotateCcw className="h-3.5 w-3.5" />
-                            默认
+                            {t("app.resetDefault", { defaultValue: "默认" })}
                           </Button>
                         )}
                       </div>
@@ -584,13 +603,13 @@ function App() {
           )}
         </section>
 
-        <aside className="pal-actions" aria-label="配置码操作">
+        <aside className="pal-actions" aria-label={t("app.codeActionsAria", { defaultValue: "配置码操作" })}>
           <section className="pal-code-panel">
             <div className="pal-code-title">
               <KeyRound className="h-5 w-5" />
               <div>
-                <h2>配置码</h2>
-                <p>永久有效，可在网页读取，也可交给服务器端配置工具使用。</p>
+                <h2>{t("app.configCode", { defaultValue: "配置码" })}</h2>
+                <p>{t("app.configCodeDescription", { defaultValue: "永久有效，可在网页读取，也可交给服务器端配置工具使用。" })}</p>
               </div>
             </div>
             <Input
@@ -601,37 +620,41 @@ function App() {
             />
             <div className="pal-code-actions">
               <Button variant="secondary" onClick={() => void loadConfigCode()} disabled={isLoadingConfig}>
-                读取配置码
+                {t("app.loadCode", { defaultValue: "读取配置码" })}
               </Button>
               <Button onClick={() => void createConfigCode()} disabled={isSavingConfig}>
-                生成配置码
+                {t("app.generateCode", { defaultValue: "生成配置码" })}
               </Button>
             </div>
             {configCode && (
               <div className="pal-current-code">
-                <span>当前配置码</span>
+                <span>{t("app.currentCode", { defaultValue: "当前配置码" })}</span>
                 <strong>{configCode}</strong>
                 <Button
                   variant="outline"
                   onClick={() =>
                     void copyText(configCode)
-                      .then(() => toast.success("配置码已复制"))
-                      .catch(() => toast.error("复制失败"))
+                      .then(() => toast.success(t("app.toastCodeCopied", { defaultValue: "配置码已复制" })))
+                      .catch(() => toast.error(t("app.copyFailed", { defaultValue: "复制失败" })))
                   }
                 >
                   <Copy className="mr-2 h-4 w-4" />
-                  复制
+                  {t("copy", { defaultValue: "复制" })}
                 </Button>
               </div>
             )}
           </section>
 
           <section className="pal-summary-panel">
-            <h2>当前草稿</h2>
-            <p>{changedIds.size ? `已修改 ${changedIds.size} 项配置` : "当前为默认配置"}</p>
+            <h2>{t("app.currentDraft", { defaultValue: "当前草稿" })}</h2>
+            <p>
+              {changedIds.size
+                ? t("app.draftChanged", { count: changedIds.size, defaultValue: `已修改 ${changedIds.size} 项配置` })
+                : t("app.draftDefault", { defaultValue: "当前为默认配置" })}
+            </p>
             <Button className="w-full" variant="outline" onClick={resetAll} disabled={!changedIds.size}>
               <RotateCcw className="mr-2 h-4 w-4" />
-              全部恢复默认
+              {t("app.resetAll", { defaultValue: "全部恢复默认" })}
             </Button>
           </section>
         </aside>

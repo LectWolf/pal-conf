@@ -3,7 +3,6 @@ import { useTranslation, Trans } from 'react-i18next';
 import { ChevronDown } from "lucide-react"
 
 import { DeathPenaltyLabels, DifficultyLabels, LogFormatTypeLabels, RandomizerTypeLabels } from "@/consts/dropdownLabels"
-import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import {
     Command,
@@ -50,6 +49,7 @@ export function SelectInput(props: {
     const [open, setOpen] = useState(false);
     const entryDescriptions = I18nStr.entry.description as Partial<Record<Key, Record<string, string>>>;
     const i18nLabelDesc = get(entryDescriptions[dKey], label, "");
+    const optionName = (option: string) => t(`entry.option.${dKey}.${option}`, { defaultValue: option });
 
     const labelDesc = t(i18nLabelDesc, {
         defaultValue: labels.find((l) => l.name === label)?.desc ?? "",
@@ -70,44 +70,51 @@ export function SelectInput(props: {
                     </Tooltip>
                 </TooltipProvider>
             </Label>
-            <div className="flex w-full items-start justify-between rounded-md border px-4 py-1 sm:flex-row sm:items-center">
-                <p className="text-sm font-medium leading-none">
-                    <span className="mr-2 rounded-lg bg-primary px-2 py-1 text-xs text-primary-foreground normal-case">
-                        {label}
-                    </span>
-                    <span className="text-muted-foreground leading-7">{labelDesc}</span>
-                </p>
-                <DropdownMenu open={open} onOpenChange={setOpen}>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="ml-auto">
-                            <ChevronDown />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-[200px]">
-                        <DropdownMenuGroup>
-                            <Command>
-                                <CommandList>
-                                    <CommandEmpty>No label found.</CommandEmpty>
-                                    <CommandGroup>
-                                        {labels.map((label) => (
-                                            <CommandItem
-                                                key={`select-${dKey}-${label.name}`}
-                                                value={label.name}
-                                                onSelect={() => {
-                                                    setOpen(false);
-                                                    onLabelChange(label.name);
-                                                }}
-                                            >
-                                                {label.name}
-                                            </CommandItem>
-                                        ))}
-                                    </CommandGroup>
-                                </CommandList>
-                            </Command>
-                        </DropdownMenuGroup>
-                    </DropdownMenuContent>
-                </DropdownMenu>
-            </div>
+            <DropdownMenu open={open} onOpenChange={setOpen}>
+                <DropdownMenuTrigger asChild>
+                    <button
+                        className="flex w-full items-center justify-between gap-3 rounded-md border bg-background px-4 py-2 text-left transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        type="button"
+                    >
+                        <span className="min-w-0">
+                            <span className="mr-2 inline-flex rounded-md bg-primary px-2 py-1 text-xs font-medium text-primary-foreground normal-case">
+                                {optionName(label)}
+                            </span>
+                            <span className="text-sm text-muted-foreground">{labelDesc}</span>
+                        </span>
+                        <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-[min(360px,calc(100vw-2rem))]">
+                    <DropdownMenuGroup>
+                        <Command>
+                            <CommandList>
+                                <CommandEmpty>{t("app.noOptions", { defaultValue: "没有可选项" })}</CommandEmpty>
+                                <CommandGroup>
+                                    {labels.map((label) => (
+                                        <CommandItem
+                                            className="flex flex-col items-start gap-1"
+                                            key={`select-${dKey}-${label.name}`}
+                                            value={label.name}
+                                            onSelect={() => {
+                                                setOpen(false);
+                                                onLabelChange(label.name);
+                                            }}
+                                        >
+                                            <span className="font-medium">{optionName(label.name)}</span>
+                                            {"desc" in label && label.desc ? (
+                                                <span className="text-xs text-muted-foreground">
+                                                    {t(get(entryDescriptions[dKey], label.name, ""), { defaultValue: label.desc })}
+                                                </span>
+                                            ) : null}
+                                        </CommandItem>
+                                    ))}
+                                </CommandGroup>
+                            </CommandList>
+                        </Command>
+                    </DropdownMenuGroup>
+                </DropdownMenuContent>
+            </DropdownMenu>
         </div>
     );
 }

@@ -49,6 +49,7 @@ const schema = JSON.parse(fs.readFileSync(schemaPath, "utf8"));
 const schemaEntries = schema.entries;
 const schemaById = new Map(schemaEntries.map((entry) => [entry.id, entry]));
 const entryIdToEnumName = schema.entryIdToEnumName ?? {};
+const alwaysWriteWorldOptionIds = new Set(["AdminPassword"]);
 
 const wasmBytes = fs.readFileSync(path.join(root, "src", "lib", "uesave", "uesave_wasm_bg.wasm"));
 const wasm = await WebAssembly.instantiate(wasmBytes, { "./uesave_wasm_bg.js": uesave });
@@ -174,10 +175,10 @@ function buildWorldOptionJson(settings) {
     const defaultValue = entry.defaultValue;
     const enumType = entryIdToEnumName[entry.id];
 
-    if ((entry.type === "integer" || entry.type === "float") && Number(value) === Number(defaultValue)) {
+    if (!alwaysWriteWorldOptionIds.has(entry.id) && (entry.type === "integer" || entry.type === "float") && Number(value) === Number(defaultValue)) {
       continue;
     }
-    if (entry.type !== "integer" && entry.type !== "float" && String(value) === String(defaultValue)) {
+    if (!alwaysWriteWorldOptionIds.has(entry.id) && entry.type !== "integer" && entry.type !== "float" && String(value) === String(defaultValue)) {
       continue;
     }
 

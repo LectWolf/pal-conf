@@ -357,6 +357,16 @@
       "type": "string"
     },
     {
+      "id": "AdminPassword",
+      "defaultValue": "started",
+      "type": "string"
+    },
+    {
+      "id": "ServerPassword",
+      "defaultValue": "",
+      "type": "string"
+    },
+    {
       "id": "bIsUseBackupSaveData",
       "defaultValue": "True",
       "type": "boolean"

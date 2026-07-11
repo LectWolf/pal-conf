@@ -1,7 +1,6 @@
 import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
 import { Trans } from 'react-i18next';
-import { Button } from "./ui/button";
 import { Input } from "@/components/ui/input"
 import {
     Tooltip,
@@ -9,7 +8,7 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { RotateCcw, ArrowBigLeftDash, ArrowBigRightDash } from "lucide-react"
+import { ArrowBigLeftDash, ArrowBigRightDash } from "lucide-react"
 import { useEffect, useRef, useState } from "react";
 import { I18nStr } from "@/i18n";
 
@@ -24,7 +23,6 @@ function SliderInput(props: {
     id: string;
     name: string;
     value: number;
-    defaultValue: number;
     minValue: number;
     maxValue: number;
     step: number;
@@ -37,7 +35,6 @@ function SliderInput(props: {
         id,
         name,
         value,
-        defaultValue,
         minValue,
         maxValue,
         step,
@@ -134,11 +131,6 @@ function SliderInput(props: {
                     </Tooltip>
                 </TooltipProvider>
                 {difficultyTypeArrowRenderer(difficultyType)}
-                <Button variant="ghost" className="ml-auto h-8 px-1" onClick={() => {
-                    onValueChange([defaultValue]);
-                }} disabled={disabled}>
-                    <RotateCcw />
-                </Button>
             </div>
             <div className="flex">
                 <TooltipProvider>

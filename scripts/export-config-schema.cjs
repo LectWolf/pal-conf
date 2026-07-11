@@ -32,8 +32,6 @@ const worldOptionModule = loadTsModule(path.join("src", "consts", "worldoption.t
 const reservedLaunchSettingIds = new Set([
   "PublicPort",
   "PublicIP",
-  "ServerPassword",
-  "AdminPassword",
   "RCONEnabled",
   "RCONPort",
   "RESTAPIEnabled",

@@ -130,8 +130,8 @@
         "Region": "Región",
         "bUseAuth": "Usar Autenticación",
         "BanListURL": "URL de Lista de Prohibidos",
-        "SupplyDropSpan":"Intervalo de meteoritos y entrega de suministros (minutos)",
-        "ChatPostLimitPerMinute":"Límite de mensajes por minuto",
+        "SupplyDropSpan": "Intervalo de meteoritos y entrega de suministros (minutos)",
+        "ChatPostLimitPerMinute": "Límite de mensajes por minuto",
         "bIsRandomizerPalLevelRandom": "Nivel de Palu salvaje completamente aleatorio",
         "bAllowGlobalPalboxExport": "Permitir exportación global de Palbox",
         "bAllowGlobalPalboxImport": "Permitir importación global de Palbox",
@@ -172,7 +172,136 @@
           "None": "Ningún aleatorizador establecido",
           "Region": "Establecido para aleatorizar la región",
           "All": "Establecido para aleatorizar todo"
+        },
+        "Difficulty": {
+          "None": "Use custom settings from this page",
+          "Casual": "Use the casual difficulty preset",
+          "Normal": "Use the normal difficulty preset",
+          "Hard": "Use the hard difficulty preset"
         }
+      },
+      "option": {
+        "Difficulty": {
+          "None": "Custom",
+          "Casual": "Casual",
+          "Normal": "Normal",
+          "Hard": "Hard"
+        },
+        "DeathPenalty": {
+          "None": "None",
+          "Item": "Items only",
+          "ItemAndEquipment": "Items and equipment",
+          "All": "All items, equipment, and Pals"
+        },
+        "LogFormatType": {
+          "Text": "Text",
+          "Json": "JSON"
+        },
+        "RandomizerType": {
+          "None": "None",
+          "Region": "By region",
+          "All": "All"
+        }
+      }
+    },
+    "app": {
+      "subtitle": "Tune settings by gameplay category, then generate a code for your server startup config.",
+      "searchAria": "Search settings",
+      "searchPlaceholder": "Search settings, keys, or descriptions",
+      "languageAria": "Change language",
+      "categoryAria": "Setting categories",
+      "settingsAria": "Settings",
+      "totalSettings": "All settings",
+      "changedSettings": "Changed",
+      "visibleSettings": "Visible",
+      "noMatchedSettings": "No matching settings",
+      "clearSearch": "Clear search",
+      "itemCount": "{{count}} items",
+      "resetDefault": "Default",
+      "codeActionsAria": "Config code actions",
+      "configCode": "Config Code",
+      "configCodeDescription": "Permanent code, readable on this page or by the server-side config tool.",
+      "loadCode": "Load code",
+      "generateCode": "Generate code",
+      "currentCode": "Current code",
+      "currentDraft": "Current draft",
+      "draftChanged": "{{count}} settings changed",
+      "draftDefault": "Using default settings",
+      "resetAll": "Reset all to default",
+      "noOptions": "No options found",
+      "toastReset": "Reset to default settings",
+      "toastCodeGenerated": "Config code generated",
+      "toastCodeGeneratedDescription": "{{code}} is permanent.",
+      "toastCodeGenerateFailed": "Failed to generate config code",
+      "tryLater": "Please try again later.",
+      "toastInvalidCode": "Invalid config code",
+      "invalidCodeDescription": "Enter a 4-4 alphanumeric code like ABCD-1234.",
+      "codeNotFound": "Config code not found.",
+      "toastCodeLoaded": "Config loaded",
+      "toastCodeLoadedDescription": "Loaded config code {{code}}.",
+      "toastCodeLoadFailed": "Failed to load config code",
+      "checkCodeAndRetry": "Check the code and try again.",
+      "toastCodeCopied": "Config code copied",
+      "copyFailed": "Copy failed",
+      "saveFailed": "Failed to save config"
+    },
+    "section": {
+      "game": "In-Game Settings",
+      "server": "Server Settings",
+      "advanced": "Advanced Settings"
+    },
+    "group": {
+      "world": {
+        "name": "World & Rates",
+        "description": "Time, experience, randomizer, supply drops, and general world rates."
+      },
+      "player": {
+        "name": "Player",
+        "description": "Player damage, survival drain, recovery, weight, and equipment durability."
+      },
+      "pal": {
+        "name": "Pals",
+        "description": "Capture, spawns, combat, survival drain, recovery, eggs, and ranch speed."
+      },
+      "build": {
+        "name": "Building & Gathering",
+        "description": "Building durability, build limits, gathering resources, and building display."
+      },
+      "drop": {
+        "name": "Drops",
+        "description": "Enemy drops, world dropped item limits, and lifetime."
+      },
+      "mode": {
+        "name": "Game Rules",
+        "description": "Death penalty, PvE/PvP rules, hardcore mode, fast travel, and spawn logic."
+      },
+      "guild": {
+        "name": "Guilds & Bases",
+        "description": "Base counts, base workers, guild size, and guild master transfer."
+      },
+      "pvp": {
+        "name": "PvP",
+        "description": "PvP respawn penalties, map item display, and extra kill drops."
+      },
+      "stat": {
+        "name": "Stat Enhancement",
+        "description": "Allow Pal essence upgrades for health, attack, stamina, weight, and work speed."
+      },
+      "server": {
+        "name": "Server",
+        "description": "Server name, description, player limits, passwords, saves, mods, and global Palbox."
+      },
+      "network": {
+        "name": "Network & Security",
+        "description": "Crossplay, region, authentication, ban list, logs, and chat limit."
+      },
+      "voice": {
+        "name": "Voice Chat",
+        "description": "In-game proximity voice toggle and distance falloff."
+      },
+      "advanced": {
+        "name": "Advanced",
+        "description": "Replication distance, container refresh, Pal storage checks, disabled tech, and performance options."
       }
     }
   }

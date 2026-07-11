@@ -121,7 +121,7 @@
         "ServerName": "服务器名称",
         "ServerDescription": "服务器描述",
         "AdminPassword": "管理员密码",
-        "ServerPassword": "服务器密码",
+        "ServerPassword": "进服密码",
         "PublicPort": "公共端口",
         "PublicIP": "公共 IP",
         "RCONEnabled": "启用 RCON",
@@ -132,11 +132,11 @@
         "Region": "地区",
         "bUseAuth": "使用授权",
         "BanListURL": "封禁列表 URL",
-        "SupplyDropSpan":"陨石或空投的间隔（分钟）",
-        "ChatPostLimitPerMinute":"每分钟聊天限制数",
+        "SupplyDropSpan": "陨石或空投的间隔（分钟）",
+        "ChatPostLimitPerMinute": "每分钟聊天限制数",
         "bIsRandomizerPalLevelRandom": "完全随机野外帕鲁等级",
-        "bAllowGlobalPalboxExport":"允许通过跨界帕鲁终端保存帕鲁的基因序列",
-        "bAllowGlobalPalboxImport":"允许通过跨界帕鲁终端的基因序列复原帕鲁",
+        "bAllowGlobalPalboxExport": "允许通过跨界帕鲁终端保存帕鲁的基因序列",
+        "bAllowGlobalPalboxImport": "允许通过跨界帕鲁终端的基因序列复原帕鲁",
         "EquipmentDurabilityDamageRate": "装备耐久度损坏率",
         "ItemContainerForceMarkDirtyInterval": "物品容器强制标记为脏的间隔（秒）",
         "PlayerDataPalStorageUpdateCheckTickInterval": "帕鲁仓库检查间隔（秒）",
@@ -183,7 +183,136 @@
           "None": "未设置随机器",
           "Region": "设置为随机地区",
           "All": "设置为完全随机"
+        },
+        "Difficulty": {
+          "None": "使用本页自定义数值",
+          "Casual": "使用休闲难度预设",
+          "Normal": "使用普通难度预设",
+          "Hard": "使用困难难度预设"
         }
+      },
+      "option": {
+        "Difficulty": {
+          "None": "自定义",
+          "Casual": "休闲",
+          "Normal": "普通",
+          "Hard": "困难"
+        },
+        "DeathPenalty": {
+          "None": "无损失",
+          "Item": "仅掉落物品",
+          "ItemAndEquipment": "掉落物品和装备",
+          "All": "掉落所有物品、装备和帕鲁"
+        },
+        "LogFormatType": {
+          "Text": "文本",
+          "Json": "JSON"
+        },
+        "RandomizerType": {
+          "None": "不随机",
+          "Region": "按地区随机",
+          "All": "完全随机"
+        }
+      }
+    },
+    "app": {
+      "subtitle": "按玩法分类调整配置，生成配置码后交给服务器启动配置使用。",
+      "searchAria": "搜索配置项",
+      "searchPlaceholder": "搜索配置项、键名或说明",
+      "languageAria": "切换语言",
+      "categoryAria": "配置分类",
+      "settingsAria": "配置项",
+      "totalSettings": "全部配置",
+      "changedSettings": "已修改",
+      "visibleSettings": "当前显示",
+      "noMatchedSettings": "没有匹配的配置项",
+      "clearSearch": "清除搜索",
+      "itemCount": "{{count}} 项",
+      "resetDefault": "默认",
+      "codeActionsAria": "配置码操作",
+      "configCode": "配置码",
+      "configCodeDescription": "永久有效，可在网页读取，也可交给服务器端配置工具使用。",
+      "loadCode": "读取配置码",
+      "generateCode": "生成配置码",
+      "currentCode": "当前配置码",
+      "currentDraft": "当前草稿",
+      "draftChanged": "已修改 {{count}} 项配置",
+      "draftDefault": "当前为默认配置",
+      "resetAll": "全部恢复默认",
+      "noOptions": "没有可选项",
+      "toastReset": "已恢复默认配置",
+      "toastCodeGenerated": "配置码已生成",
+      "toastCodeGeneratedDescription": "{{code}} 永久有效。",
+      "toastCodeGenerateFailed": "生成配置码失败",
+      "tryLater": "请稍后重试。",
+      "toastInvalidCode": "配置码无效",
+      "invalidCodeDescription": "请输入类似 ABCD-1234 的 4-4 位字母数字配置码。",
+      "codeNotFound": "未找到配置码。",
+      "toastCodeLoaded": "配置已读取",
+      "toastCodeLoadedDescription": "已加载配置码 {{code}}。",
+      "toastCodeLoadFailed": "读取配置码失败",
+      "checkCodeAndRetry": "请检查配置码后重试。",
+      "toastCodeCopied": "配置码已复制",
+      "copyFailed": "复制失败",
+      "saveFailed": "保存配置失败"
+    },
+    "section": {
+      "game": "游戏内设置",
+      "server": "服务器设置",
+      "advanced": "高级设置"
+    },
+    "group": {
+      "world": {
+        "name": "世界与倍率",
+        "description": "时间、经验、随机化、空投和世界通用倍率。"
+      },
+      "player": {
+        "name": "玩家",
+        "description": "玩家伤害、生存消耗、恢复、负重和装备耐久。"
+      },
+      "pal": {
+        "name": "帕鲁",
+        "description": "捕获、刷新、战斗、生存消耗、恢复、孵蛋和牧场效率。"
+      },
+      "build": {
+        "name": "建筑与采集",
+        "description": "建筑耐久、建造限制、采集资源和建筑显示。"
+      },
+      "drop": {
+        "name": "掉落物",
+        "description": "敌人掉落、世界掉落物数量和保留时长。"
+      },
+      "mode": {
+        "name": "游戏规则",
+        "description": "死亡惩罚、PvE/PvP 规则、硬核、快速传送和出生逻辑。"
+      },
+      "guild": {
+        "name": "公会与据点",
+        "description": "据点数量、据点帕鲁、公会人数和会长转让。"
+      },
+      "pvp": {
+        "name": "PvP",
+        "description": "PvP 重生惩罚、地图物资显示和击杀额外掉落。"
+      },
+      "stat": {
+        "name": "能力强化",
+        "description": "帕鲁精髓强化生命、攻击、耐力、负重和工作速度。"
+      },
+      "server": {
+        "name": "服务器",
+        "description": "服务器名称、简介、人数、密码、存档、Mod 和跨界帕鲁箱。"
+      },
+      "network": {
+        "name": "网络与安全",
+        "description": "跨平台、区域、认证、封禁名单、日志和聊天限制。"
+      },
+      "voice": {
+        "name": "语音聊天",
+        "description": "游戏内近距离语音开关和距离衰减。"
+      },
+      "advanced": {
+        "name": "高级参数",
+        "description": "同步距离、容器刷新、帕鲁仓库检查、禁用科技和性能参数。"
       }
     }
   }
