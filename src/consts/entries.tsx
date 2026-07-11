@@ -84,7 +84,7 @@ export const ENTRIES: Record<string, Entry> = {
     id: "Difficulty",
     defaultValue: "None",
     type: "select",
-    options: ["None"],
+    options: ["None", "Casual", "Normal", "Hard"],
   },
   RandomizerType: {
     name: "Randomizer Type",

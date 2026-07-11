@@ -22,6 +22,18 @@ export const DifficultyLabels = [
         name: "None",
         desc: "Use custom settings",
     },
+    {
+        name: "Casual",
+        desc: "Use casual preset",
+    },
+    {
+        name: "Normal",
+        desc: "Use normal preset",
+    },
+    {
+        name: "Hard",
+        desc: "Use hard preset",
+    },
 ] as const;
 
 export const CrossplayPlatformsLabels = [

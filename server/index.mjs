@@ -108,6 +108,13 @@ function getDefaultSettings() {
   return Object.fromEntries(schemaEntries.map((entry) => [entry.id, entry.defaultValue]));
 }
 
+function isSameEntryValue(entry, value, otherValue = entry.defaultValue) {
+  if (entry.type === "integer" || entry.type === "float") {
+    return Number(value) === Number(otherValue);
+  }
+  return String(value) === String(otherValue);
+}
+
 function sanitizeOverrides(settings) {
   const overrides = {};
   if (!settings || typeof settings !== "object" || Array.isArray(settings)) {
@@ -119,7 +126,7 @@ function sanitizeOverrides(settings) {
       continue;
     }
     const value = String(rawValue);
-    if (value !== String(entry.defaultValue)) {
+    if (!isSameEntryValue(entry, value)) {
       overrides[id] = value;
     }
   }

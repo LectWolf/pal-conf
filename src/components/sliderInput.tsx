@@ -10,7 +10,7 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { RotateCcw, ArrowBigLeftDash, ArrowBigRightDash } from "lucide-react"
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { I18nStr } from "@/i18n";
 
 /**
@@ -48,6 +48,7 @@ function SliderInput(props: {
     } = props;
 
     const [inputValue, setInputValue] = useState(`${value}`);
+    const mounted = useRef(false);
 
     const difficultyTypeArrowRenderer = (difficultyType: DifficultyType) => {
         switch (difficultyType) {
@@ -89,6 +90,10 @@ function SliderInput(props: {
     const shownStep = type === "integer" ? 1 : 0.1;
 
     useEffect(() => {
+        if (!mounted.current) {
+            mounted.current = true;
+            return;
+        }
         const handler = setTimeout(() => {
             // let value = +inputValue;
             // if (value < minValue) {
@@ -99,7 +104,10 @@ function SliderInput(props: {
             //     value = maxValue;
             //     setInputValue(`${maxValue}`);
             // }
-            onValueChange([+inputValue]);
+            const nextValue = +inputValue;
+            if (Number.isFinite(nextValue) && nextValue !== value) {
+                onValueChange([nextValue]);
+            }
         }, 1500);
         return () => {
             clearTimeout(handler);

@@ -100,6 +100,7 @@ const GROUP_ICONS = {
 
 type Group = (typeof SettingGroups)[number];
 type GroupIconName = Group["icon"];
+type Entry = (typeof ENTRIES)[string];
 
 function isConfigurableEntry(id: string) {
   return !RESERVED_LAUNCH_SETTING_IDS.has(id);
@@ -108,6 +109,13 @@ function isConfigurableEntry(id: string) {
 function normalizeConfigCode(code: string) {
   const compact = code.toUpperCase().replace(/[^A-Z0-9]/g, "");
   return compact.length === 8 ? `${compact.slice(0, 4)}-${compact.slice(4)}` : code.toUpperCase().trim();
+}
+
+function isSameEntryValue(entry: Entry, value: unknown, otherValue = entry.defaultValue) {
+  if (entry.type === "integer" || entry.type === "float") {
+    return Number(value) === Number(otherValue);
+  }
+  return String(value) === String(otherValue);
 }
 
 function copyText(text: string) {
@@ -152,7 +160,7 @@ function App() {
     return new Set(
       Object.values(ENTRIES)
         .filter((entry) => isConfigurableEntry(entry.id))
-        .filter((entry) => String(entries[entry.id] ?? entry.defaultValue) !== String(entry.defaultValue))
+        .filter((entry) => !isSameEntryValue(entry, entries[entry.id] ?? entry.defaultValue))
         .map((entry) => entry.id)
     );
   }, [entries]);
@@ -221,7 +229,8 @@ function App() {
       if (!isConfigurableEntry(entry.id)) {
         return;
       }
-      result[entry.id] = entries[entry.id] ?? entry.defaultValue;
+      const value = entries[entry.id] ?? entry.defaultValue;
+      result[entry.id] = isSameEntryValue(entry, value) ? entry.defaultValue : String(value);
     });
     return result;
   };
