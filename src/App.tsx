@@ -268,7 +268,7 @@ function App() {
       toast.success(t("app.toastCodeGenerated", { defaultValue: "配置码已生成" }), {
         description: t("app.toastCodeGeneratedDescription", {
           code: data.code,
-          defaultValue: `${data.code} 永久有效。`,
+          defaultValue: `${data.code}`,
         }),
       });
     } catch (e) {
@@ -285,7 +285,7 @@ function App() {
     const normalizedCode = normalizeConfigCode(configCodeInput);
     if (!CONFIG_CODE_PATTERN.test(normalizedCode)) {
       toast.error(t("app.toastInvalidCode", { defaultValue: "配置码无效" }), {
-        description: t("app.invalidCodeDescription", { defaultValue: "请输入类似 ABCD-1234 的 4-4 位字母数字配置码。" }),
+        description: t("app.invalidCodeDescription", { defaultValue: "输入 4-4 位配置码，如 ABCD-1234。" }),
       });
       return;
     }
@@ -308,7 +308,7 @@ function App() {
     } catch (e) {
       console.error(e);
       toast.error(t("app.toastCodeLoadFailed", { defaultValue: "读取配置码失败" }), {
-        description: e instanceof Error ? e.message : t("app.checkCodeAndRetry", { defaultValue: "请检查配置码后重试。" }),
+        description: e instanceof Error ? e.message : t("app.checkCodeAndRetry", { defaultValue: "请检查配置码。" }),
       });
     } finally {
       setIsLoadingConfig(false);
@@ -446,7 +446,7 @@ function App() {
                 </a>
               </Badge>
             </div>
-            <p>{t("app.subtitle", { defaultValue: "按玩法分类调整配置，生成配置码后交给服务器启动配置使用。" })}</p>
+            <p>{t("app.subtitle", { defaultValue: "星遥游戏服务器专用" })}</p>
           </div>
         </div>
 
@@ -455,7 +455,7 @@ function App() {
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder={t("app.searchPlaceholder", { defaultValue: "搜索配置项、键名或说明" })}
+            placeholder={t("app.searchPlaceholder", { defaultValue: "搜索配置项或键名" })}
             type="search"
           />
         </label>
@@ -571,7 +571,6 @@ function App() {
                   <div className="pal-group-icon">{renderGroupIcon(group.icon, "h-5 w-5")}</div>
                   <div>
                     <h2>{groupName(group)}</h2>
-                    <p>{groupDescription(group)}</p>
                   </div>
                   <Badge variant="outline" className="ml-auto">
                     {t("app.itemCount", { count: group.settings.length, defaultValue: `${group.settings.length} 项` })}
@@ -609,7 +608,7 @@ function App() {
               <KeyRound className="h-5 w-5" />
               <div>
                 <h2>{t("app.configCode", { defaultValue: "配置码" })}</h2>
-                <p>{t("app.configCodeDescription", { defaultValue: "永久有效，可在网页读取，也可交给服务器端配置工具使用。" })}</p>
+                <p>{t("app.configCodeDescription", { defaultValue: "星遥服务器配置档案" })}</p>
               </div>
             </div>
             <Input
