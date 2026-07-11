@@ -7,6 +7,7 @@ PAL_CONF_BASE_URL="${PAL_CONF_BASE_URL:-https://pal.started.ink}"
 CONFIG_DIR="${PALWORLD_CONFIG_DIR:-/home/container/Pal/Saved/Config/LinuxServer}"
 PALWORLD_SETTINGS_PATH="${PALWORLD_SETTINGS_PATH:-${CONFIG_DIR}/PalWorldSettings.ini}"
 WORLDOPTION_SAV_PATH="${WORLDOPTION_SAV_PATH:-}"
+PAL_CONF_ENV_PATH="${PAL_CONF_ENV_PATH:-./pal_conf.env}"
 
 if [ -z "$WORLDOPTION_SAV_PATH" ]; then
   WORLDOPTION_SAV_PATH="$(find /home/container/Pal/Saved/SaveGames/0 -path '*/WorldOption.sav' -type f 2>/dev/null | head -n 1 || true)"
@@ -23,15 +24,20 @@ fi
 
 mkdir -p "$(dirname "$PALWORLD_SETTINGS_PATH")"
 mkdir -p "$(dirname "$WORLDOPTION_SAV_PATH")"
+mkdir -p "$(dirname "$PAL_CONF_ENV_PATH")"
 
 ini_tmp="${PALWORLD_SETTINGS_PATH}.tmp"
 sav_tmp="${WORLDOPTION_SAV_PATH}.tmp"
+env_tmp="${PAL_CONF_ENV_PATH}.tmp"
 
 curl -fsSL "${PAL_CONF_BASE_URL%/}/api/configs/${PAL_CONF_CODE}/palworldsettings.ini" -o "$ini_tmp"
 curl -fsSL "${PAL_CONF_BASE_URL%/}/api/configs/${PAL_CONF_CODE}/worldoption.sav" -o "$sav_tmp"
+curl -fsSL "${PAL_CONF_BASE_URL%/}/api/configs/${PAL_CONF_CODE}/env" -o "$env_tmp"
 
 mv "$ini_tmp" "$PALWORLD_SETTINGS_PATH"
 mv "$sav_tmp" "$WORLDOPTION_SAV_PATH"
+mv "$env_tmp" "$PAL_CONF_ENV_PATH"
 
 echo "PalWorldSettings.ini 已通过配置码 ${PAL_CONF_CODE} 更新"
 echo "WorldOption.sav 已通过配置码 ${PAL_CONF_CODE} 更新"
+echo "启动环境变量已通过配置码 ${PAL_CONF_CODE} 更新"

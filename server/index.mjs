@@ -168,6 +168,18 @@ function buildPalWorldSettingsIni(settings) {
   return `[/Script/Pal.PalGameWorldSettings]\nOptionSettings=(${values.join(",")})\n`;
 }
 
+function quoteShellValue(value) {
+  return `'${String(value).replaceAll("'", "'\\''")}'`;
+}
+
+function buildStartupEnv(settings) {
+  return [
+    `export ADMIN_PASSWORD=${quoteShellValue(settings.AdminPassword ?? "")}`,
+    `export SERVER_PASSWORD=${quoteShellValue(settings.ServerPassword ?? "")}`,
+    "",
+  ].join("\n");
+}
+
 function buildWorldOptionJson(settings) {
   const result = {};
   for (const entry of schemaEntries) {
@@ -402,6 +414,22 @@ const server = http.createServer(async (req, res) => {
         return;
       }
       sendBuffer(res, 200, buildWorldOptionSav(mergeSettings(config.overrides)), "application/octet-stream");
+      return;
+    }
+
+    const envMatch = pathname.match(/^\/api\/configs\/([^/]+)\/env$/i);
+    if (req.method === "GET" && envMatch) {
+      const code = normalizeCode(envMatch[1]);
+      if (!codePattern.test(code)) {
+        sendJson(res, 400, { error: "配置码格式无效" });
+        return;
+      }
+      const config = getConfig(code);
+      if (!config) {
+        sendJson(res, 404, { error: "配置码不存在" });
+        return;
+      }
+      sendText(res, 200, buildStartupEnv(mergeSettings(config.overrides)), "text/plain; charset=utf-8");
       return;
     }
 
