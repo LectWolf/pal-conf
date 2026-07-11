@@ -94,6 +94,7 @@
   background:
     linear-gradient(180deg, hsl(210 40% 98%) 0%, hsl(198 28% 96%) 46%, hsl(42 36% 96%) 100%);
   color: hsl(var(--foreground));
+  --pal-sticky-top: 112px;
   min-height: 100vh;
   padding: 20px;
 }
@@ -219,7 +220,7 @@
 .pal-actions {
   align-self: start;
   position: sticky;
-  top: 96px;
+  top: var(--pal-sticky-top);
 }
 
 .pal-sidebar {
@@ -557,6 +558,7 @@
 
 @media (max-width: 880px) {
   .pal-page {
+    --pal-sticky-top: 132px;
     padding: 10px;
   }
 
@@ -584,7 +586,7 @@
     overflow-x: auto;
     padding: 8px;
     position: sticky;
-    top: 116px;
+    top: var(--pal-sticky-top);
     z-index: 10;
   }
 
