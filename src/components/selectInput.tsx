@@ -2,7 +2,7 @@ import { useState } from "react"
 import { useTranslation, Trans } from 'react-i18next';
 import { ChevronDown } from "lucide-react"
 
-import { DeathPenaltyLabels, LogFormatTypeLabels, RandomizerTypeLabels } from "@/consts/dropdownLabels"
+import { DeathPenaltyLabels, DifficultyLabels, LogFormatTypeLabels, RandomizerTypeLabels } from "@/consts/dropdownLabels"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import {
@@ -26,12 +26,12 @@ import {
 } from "@/components/ui/tooltip"
 import { I18nStr } from "@/i18n";
 
-type Labels = typeof DeathPenaltyLabels | typeof LogFormatTypeLabels | typeof RandomizerTypeLabels;
+type Labels = typeof DeathPenaltyLabels | typeof DifficultyLabels | typeof LogFormatTypeLabels | typeof RandomizerTypeLabels;
 export type LabelValue = Labels[number]['name'];
-type Key =  'DeathPenalty' | 'LogFormatType' | 'RandomizerType';
+type Key =  'DeathPenalty' | 'Difficulty' | 'LogFormatType' | 'RandomizerType';
 
-function get<T>(dict: Record<string, T>, key: string, defaultValue: T): T {
-    return Object.prototype.hasOwnProperty.call(dict, key) ? dict[key] : defaultValue;
+function get<T>(dict: Record<string, T> | undefined, key: string, defaultValue: T): T {
+    return dict && Object.prototype.hasOwnProperty.call(dict, key) ? dict[key] : defaultValue;
 }
 
 export function SelectInput(props: {
@@ -42,12 +42,14 @@ export function SelectInput(props: {
     const { dKey, label, onLabelChange } = props;
     const labels = {
       DeathPenalty: DeathPenaltyLabels,
+      Difficulty: DifficultyLabels,
       LogFormatType: LogFormatTypeLabels,
       RandomizerType: RandomizerTypeLabels
     }[dKey] as Labels;
     const { t } = useTranslation();
     const [open, setOpen] = useState(false);
-    const i18nLabelDesc = get(I18nStr.entry.description[dKey] as Record<string, string>, label, "");
+    const entryDescriptions = I18nStr.entry.description as Partial<Record<Key, Record<string, string>>>;
+    const i18nLabelDesc = get(entryDescriptions[dKey], label, "");
 
     const labelDesc = t(i18nLabelDesc, {
         defaultValue: labels.find((l) => l.name === label)?.desc ?? "",

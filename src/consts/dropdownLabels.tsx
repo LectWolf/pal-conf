@@ -17,6 +17,13 @@ export const DeathPenaltyLabels = [
     },
 ] as const;
 
+export const DifficultyLabels = [
+    {
+        name: "None",
+        desc: "Use custom settings",
+    },
+] as const;
+
 export const CrossplayPlatformsLabels = [
     {
         name: "Steam",

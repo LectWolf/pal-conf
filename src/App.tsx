@@ -300,7 +300,7 @@ function App() {
       return (
         <SelectInput
           key={id}
-          dKey={entry.id as "DeathPenalty" | "LogFormatType" | "RandomizerType"}
+          dKey={entry.id as "DeathPenalty" | "Difficulty" | "LogFormatType" | "RandomizerType"}
           label={value as LabelValue}
           onLabelChange={(labelName: string) => {
             onStateChanged(entry.id)({
