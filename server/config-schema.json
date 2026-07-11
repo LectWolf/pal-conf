@@ -187,6 +187,11 @@
       "type": "integer"
     },
     {
+      "id": "PhysicsActiveDropItemMaxNum",
+      "defaultValue": "-1",
+      "type": "integer"
+    },
+    {
       "id": "DropItemMaxNum_UNKO",
       "defaultValue": "100",
       "type": "integer"
@@ -233,6 +238,11 @@
     },
     {
       "id": "WorkSpeedRate",
+      "defaultValue": "1.000000",
+      "type": "float"
+    },
+    {
+      "id": "MonsterFarmActionSpeedRate",
       "defaultValue": "1.000000",
       "type": "float"
     },
@@ -407,6 +417,11 @@
       "type": "float"
     },
     {
+      "id": "PlayerDataPalStorageUpdateCheckTickInterval",
+      "defaultValue": "1.000000",
+      "type": "float"
+    },
+    {
       "id": "ItemCorruptionMultiplier",
       "defaultValue": "1.000000",
       "type": "float"
@@ -434,6 +449,21 @@
     {
       "id": "GuildRejoinCooldownMinutes",
       "defaultValue": "0",
+      "type": "integer"
+    },
+    {
+      "id": "AutoTransferMasterCheckIntervalSeconds",
+      "defaultValue": "3600.000000",
+      "type": "float"
+    },
+    {
+      "id": "AutoTransferMasterThresholdDays",
+      "defaultValue": "14",
+      "type": "integer"
+    },
+    {
+      "id": "MaxGuildsPerFrame",
+      "defaultValue": "10",
       "type": "integer"
     },
     {
@@ -500,6 +530,31 @@
       "id": "bAllowEnhanceStat_WorkSpeed",
       "defaultValue": "True",
       "type": "boolean"
+    },
+    {
+      "id": "bEnableVoiceChat",
+      "defaultValue": "False",
+      "type": "boolean"
+    },
+    {
+      "id": "VoiceChatMaxVolumeDistance",
+      "defaultValue": "3000.000000",
+      "type": "float"
+    },
+    {
+      "id": "VoiceChatZeroVolumeDistance",
+      "defaultValue": "15000.000000",
+      "type": "float"
+    },
+    {
+      "id": "bEnableBuildingPlayerUIdDisplay",
+      "defaultValue": "False",
+      "type": "boolean"
+    },
+    {
+      "id": "BuildingNameDisplayCacheTTLSeconds",
+      "defaultValue": "60",
+      "type": "integer"
     }
   ],
   "entryIdToEnumName": {

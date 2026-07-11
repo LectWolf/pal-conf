@@ -48,7 +48,6 @@ const codePattern = /^[A-Z0-9]{4}-[A-Z0-9]{4}$/;
 const schema = JSON.parse(fs.readFileSync(schemaPath, "utf8"));
 const schemaEntries = schema.entries;
 const schemaById = new Map(schemaEntries.map((entry) => [entry.id, entry]));
-const worldOptionKeys = new Set(schema.worldOptionKeys ?? []);
 const entryIdToEnumName = schema.entryIdToEnumName ?? {};
 
 const wasmBytes = fs.readFileSync(path.join(root, "src", "lib", "uesave", "uesave_wasm_bg.wasm"));
@@ -164,9 +163,6 @@ function buildPalWorldSettingsIni(settings) {
 function buildWorldOptionJson(settings) {
   const result = {};
   for (const entry of schemaEntries) {
-    if (!worldOptionKeys.has(entry.id)) {
-      continue;
-    }
     const value = settings[entry.id] ?? entry.defaultValue;
     const defaultValue = entry.defaultValue;
     const enumType = entryIdToEnumName[entry.id];
