@@ -1,21 +1,45 @@
 import "./App.css";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 // i18n
 import i18n, { I18nStr } from "./i18n";
-import { useTranslation, Trans } from "react-i18next";
+import { Trans, useTranslation } from "react-i18next";
 
 // UI Components
-import { CardTitle, CardDescription, CardHeader, CardContent, Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 // UI Icons
-import { Copy, KeyRound, Languages } from "lucide-react";
+import {
+  Copy,
+  Flag,
+  Globe2,
+  Hammer,
+  KeyRound,
+  Languages,
+  Mic,
+  Package,
+  PawPrint,
+  RotateCcw,
+  Search,
+  Server,
+  Shield,
+  SlidersHorizontal,
+  Sparkles,
+  Swords,
+  TrendingUp,
+  UserRound,
+  UsersRound,
+} from "lucide-react";
 import ReactCountryFlag from "react-country-flag";
 
 // App Components
@@ -29,7 +53,7 @@ import { Input } from "./components/ui/input";
 // Constants
 import { configVersion } from "../package.json";
 import { ENTRIES } from "./consts/entries";
-import { AdvancedSettings, InGameSettings, ServerSettings } from "./consts/settings";
+import { SettingGroups, SettingSections } from "./consts/settings";
 
 // Types
 import { LabelValue } from "./components/selectInput";
@@ -46,12 +70,6 @@ interface ConfigCodeResponse {
   settings?: Record<string, string>;
 }
 
-enum SettingCategory {
-  ServerSettings = "server-settings",
-  InGameSettings = "ingame-settings",
-  AdvancedSettings = "advanced-settings",
-}
-
 const CONFIG_CODE_PATTERN = /^[A-Z0-9]{4}-[A-Z0-9]{4}$/;
 const RESERVED_LAUNCH_SETTING_IDS = new Set([
   "PublicPort",
@@ -63,6 +81,25 @@ const RESERVED_LAUNCH_SETTING_IDS = new Set([
   "RESTAPIEnabled",
   "RESTAPIPort",
 ]);
+
+const GROUP_ICONS = {
+  globe: Globe2,
+  user: UserRound,
+  paw: PawPrint,
+  hammer: Hammer,
+  package: Package,
+  flag: Flag,
+  users: UsersRound,
+  swords: Swords,
+  trend: TrendingUp,
+  server: Server,
+  shield: Shield,
+  mic: Mic,
+  sliders: SlidersHorizontal,
+};
+
+type Group = (typeof SettingGroups)[number];
+type GroupIconName = Group["icon"];
 
 function isConfigurableEntry(id: string) {
   return !RESERVED_LAUNCH_SETTING_IDS.has(id);
@@ -100,25 +137,82 @@ function App() {
   const { t } = useTranslation();
   const [locale, setLocale] = useState(i18n.language === "en" ? "en_US" : i18n.language);
   const [entries, setEntries] = useState({} as Record<string, string>);
-  const [openedAccordion, setOpenedAccordion] = useState(SettingCategory.ServerSettings);
+  const [query, setQuery] = useState("");
+  const [activeGroup, setActiveGroup] = useState<Group["id"]>(SettingGroups[0].id);
   const [configCodeInput, setConfigCodeInput] = useState("");
   const [configCode, setConfigCode] = useState("");
   const [isSavingConfig, setIsSavingConfig] = useState(false);
   const [isLoadingConfig, setIsLoadingConfig] = useState(false);
 
-  const tabRef = useRef<HTMLInputElement>(null);
+  const entryName = (id: string) => t(`entry.name.${id}`, { defaultValue: ENTRIES[id]?.name ?? id });
 
-  useEffect(() => {
-    if (tabRef.current && tabRef.current.getBoundingClientRect().top < 0) {
-      tabRef.current?.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [openedAccordion]);
+  const getEntryValue = (id: string) => entries[id] ?? ENTRIES[id]?.defaultValue ?? "";
+
+  const changedIds = useMemo(() => {
+    return new Set(
+      Object.values(ENTRIES)
+        .filter((entry) => isConfigurableEntry(entry.id))
+        .filter((entry) => String(entries[entry.id] ?? entry.defaultValue) !== String(entry.defaultValue))
+        .map((entry) => entry.id)
+    );
+  }, [entries]);
+
+  const changedByGroup = useMemo(() => {
+    return Object.fromEntries(
+      SettingGroups.map((group) => [group.id, group.settings.filter((id) => changedIds.has(id)).length])
+    ) as Record<Group["id"], number>;
+  }, [changedIds]);
+
+  const visibleGroups = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+    return SettingGroups.map((group) => {
+      const settings = group.settings
+        .filter((id) => isConfigurableEntry(id) && ENTRIES[id])
+        .filter((id) => {
+          if (!normalizedQuery) {
+            return true;
+          }
+          const entry = ENTRIES[id];
+          return [id, entryName(id), entry.name, entry.desc ?? "", group.name, group.description]
+            .join(" ")
+            .toLowerCase()
+            .includes(normalizedQuery);
+        });
+      return { ...group, settings };
+    }).filter((group) => group.settings.length > 0);
+    // entryName depends on i18n state through t.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query, t]);
+
+  const visibleSections = useMemo(() => {
+    const groupIds = new Set(visibleGroups.map((group) => group.id));
+    return SettingSections.map((section) => ({
+      ...section,
+      groups: SettingGroups.filter((group) => group.section === section.id && groupIds.has(group.id)),
+    })).filter((section) => section.groups.length > 0);
+  }, [visibleGroups]);
+
+  const visibleSettingCount = visibleGroups.reduce((total, group) => total + group.settings.length, 0);
+  const configurableSettingCount = Object.values(ENTRIES).filter((entry) => isConfigurableEntry(entry.id)).length;
 
   const onStateChanged = (id: string) => (e: ChangeEvent<string>) => {
     if (!isConfigurableEntry(id)) {
       return;
     }
     setEntries((prevEntries) => ({ ...prevEntries, [id]: `${e.target.value}` }));
+  };
+
+  const resetEntry = (id: string) => {
+    setEntries((prevEntries) => {
+      const nextEntries = { ...prevEntries };
+      delete nextEntries[id];
+      return nextEntries;
+    });
+  };
+
+  const resetAll = () => {
+    setEntries({});
+    toast.success("已恢复默认配置");
   };
 
   const getConfigurableSettings = () => {
@@ -192,7 +286,7 @@ function App() {
     }
   };
 
-  const genInput = (id: string) => {
+  const renderInput = (id: string) => {
     if (!isConfigurableEntry(id)) {
       return null;
     }
@@ -200,14 +294,14 @@ function App() {
     if (!entry) {
       return null;
     }
-    const entryName = t(`entry.name.${entry.id}`);
-    const entryValue = entries[entry.id] ?? entry.defaultValue;
+    const name = entryName(entry.id);
+    const value = getEntryValue(entry.id);
     if (entry.type === "select") {
       return (
         <SelectInput
           key={id}
           dKey={entry.id as "DeathPenalty" | "LogFormatType" | "RandomizerType"}
-          label={entryValue as LabelValue}
+          label={value as LabelValue}
           onLabelChange={(labelName: string) => {
             onStateChanged(entry.id)({
               target: { value: labelName },
@@ -217,7 +311,7 @@ function App() {
       );
     }
     if (entry.type === "array") {
-      const labelValues = (entryValue.trim() === "" ? [] : entryValue.split(",")) as LabelValues;
+      const labelValues = (value.trim() === "" ? [] : value.split(",")) as LabelValues;
       return (
         <MultiSelectInput
           key={id}
@@ -237,10 +331,10 @@ function App() {
       const step = entry.type === "integer" ? 1 : 0.000001;
       return (
         <SliderInput
-          name={entryName}
+          name={name}
           id={id}
           key={id}
-          value={Number(entryValue)}
+          value={Number(value)}
           defaultValue={Number(entry.defaultValue)}
           minValue={minValue}
           maxValue={maxValue}
@@ -258,13 +352,13 @@ function App() {
     if (entry.type === "boolean") {
       return (
         <SwitchInput
-          name={entryName}
+          name={name}
           id={id}
           key={id}
-          checked={entryValue === "True"}
-          onCheckedChange={(e) => {
+          checked={value === "True"}
+          onCheckedChange={(checked) => {
             onStateChanged(id)({
-              target: { value: e ? "True" : "False" },
+              target: { value: checked ? "True" : "False" },
             });
           }}
         />
@@ -272,10 +366,10 @@ function App() {
     }
     return (
       <TextInput
-        name={entryName}
+        name={name}
         id={id}
         key={id}
-        value={entryValue}
+        value={value}
         onChange={onStateChanged(id)}
         multiline={entry.id === "ServerDescription"}
         {...(entry.type === "integer" ? { type: "number" } : {})}
@@ -283,142 +377,220 @@ function App() {
     );
   };
 
-  const serverSettings = ServerSettings.filter(isConfigurableEntry).map((k) => genInput(k));
+  const scrollToGroup = (groupId: Group["id"]) => {
+    setActiveGroup(groupId);
+    document.getElementById(`group-${groupId}`)?.scrollIntoView({
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+      block: "start",
+    });
+  };
 
-  const inGameSettings = InGameSettings.filter(isConfigurableEntry).map((k) => genInput(k));
-
-  const advancedSettings = AdvancedSettings.filter(isConfigurableEntry).map((k) => genInput(k));
+  const renderGroupIcon = (icon: GroupIconName, className = "h-4 w-4") => {
+    const Icon = GROUP_ICONS[icon] ?? SlidersHorizontal;
+    return <Icon className={className} />;
+  };
 
   useEffect(() => {
     document.title = t(I18nStr.title);
   }, [t]);
 
   return (
-    <>
-      <main className="flex flex-col items-center min-h-screen bg-gray-100 dark:bg-gray-900 p-4">
-        <Toaster richColors />
-        <Card className="w-full max-w-3xl">
-          <CardHeader>
-            <CardTitle className="flex">
-              <div className="leading-10">
-                <Trans i18nKey={I18nStr.title} />
-                <Badge variant="secondary" className="ml-2">
-                  <a
-                    href="https://docs.palworldgame.com/settings-and-operation/configuration/"
-                    className="underline"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    {configVersion}
-                  </a>
-                </Badge>
-              </div>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button className="ml-auto h-10" variant="secondary">
-                    <Languages />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuRadioGroup
-                    value={locale}
-                    onValueChange={(value) => {
-                      i18n
-                        .changeLanguage(value)
-                        .catch((e) => {
-                          console.error(e);
-                        });
-                      setLocale(value);
-                    }}
-                  >
-                    <DropdownMenuRadioItem value="en_US">
-                      <ReactCountryFlag countryCode="US" svg />
-                      <div className="px-2"> English </div>
-                    </DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem value="zh_CN">
-                      <ReactCountryFlag countryCode="CN" svg />
-                      <div className="px-2"> 简体中文 </div>
-                    </DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem value="zh_TW">
-                      <ReactCountryFlag countryCode="TW" svg />
-                      <div className="px-2"> 繁體中文 </div>
-                    </DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem value="ja_JP">
-                      <ReactCountryFlag countryCode="JP" svg />
-                      <div className="px-2"> 日本語 </div>
-                    </DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem value="ko_KR">
-                      <ReactCountryFlag countryCode="KR" svg />
-                      <div className="px-2"> 한국인 </div>
-                    </DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem value="de_DE">
-                      <ReactCountryFlag countryCode="DE" svg />
-                      <div className="px-2"> Deutsch </div>
-                    </DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem value="pt_BR">
-                      <ReactCountryFlag countryCode="BR" svg />
-                      <div className="px-2"> Português </div>
-                    </DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem value="es_ES">
-                      <ReactCountryFlag countryCode="ES" svg />
-                      <div className="px-2"> Español </div>
-                    </DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem value="fr_FR">
-                      <ReactCountryFlag countryCode="FR" svg />
-                      <div className="px-2"> Français </div>
-                    </DropdownMenuRadioItem>
-                  </DropdownMenuRadioGroup>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </CardTitle>
-            <CardDescription>
-              调整服务器玩法设置，生成配置码后交给服务器启动配置使用。
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4" ref={tabRef}>
-            <Tabs value={openedAccordion} className="flex flex-col w-full min-h-10" onValueChange={(v) => setOpenedAccordion(v as SettingCategory)}>
-              <TabsList className="sticky top-2 z-10 shadow-lg">
-                <TabsTrigger className="w-[33%] whitespace-normal" value={SettingCategory.ServerSettings}>
-                  <Trans i18nKey={I18nStr.serverSettings} />
-                </TabsTrigger>
-                <TabsTrigger className="w-[33%] whitespace-normal" value={SettingCategory.InGameSettings}>
-                  <Trans i18nKey={I18nStr.ingameSettings} />
-                </TabsTrigger>
-                <TabsTrigger className="w-[33%] whitespace-normal" value={SettingCategory.AdvancedSettings}>
-                  <Trans i18nKey={I18nStr.advancedSettings} />
-                </TabsTrigger>
-              </TabsList>
-              <div className="mt-4 overflow-hidden">
-                <TabsContent value={SettingCategory.ServerSettings} className="space-y-2">
-                  {serverSettings}
-                </TabsContent>
-                <TabsContent value={SettingCategory.InGameSettings} className="space-y-2">
-                  {inGameSettings}
-                </TabsContent>
-                <TabsContent value={SettingCategory.AdvancedSettings} className="space-y-2">
-                  {advancedSettings}
-                </TabsContent>
-              </div>
-            </Tabs>
-          </CardContent>
-        </Card>
+    <main className="pal-page">
+      <Toaster richColors />
 
-        <Card className="w-full max-w-3xl mt-8 sticky bottom-0 z-10 shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
+      <header className="pal-topbar">
+        <div className="pal-brand">
+          <div className="pal-brand-mark">
+            <Sparkles className="h-5 w-5" />
+          </div>
+          <div className="min-w-0">
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
+              <h1>
+                <Trans i18nKey={I18nStr.title} />
+              </h1>
+              <Badge variant="secondary" className="pal-version">
+                <a
+                  href="https://docs.palworldgame.com/settings-and-operation/configuration/"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {configVersion}
+                </a>
+              </Badge>
+            </div>
+            <p>按玩法分类调整配置，生成配置码后交给服务器启动配置使用。</p>
+          </div>
+        </div>
+
+        <label className="pal-search" aria-label="搜索配置项">
+          <Search className="h-4 w-4" />
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="搜索配置项、键名或说明"
+            type="search"
+          />
+        </label>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button className="pal-language" variant="secondary" aria-label="切换语言">
+              <Languages className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuRadioGroup
+              value={locale}
+              onValueChange={(value) => {
+                i18n.changeLanguage(value).catch((e) => {
+                  console.error(e);
+                });
+                setLocale(value);
+              }}
+            >
+              <DropdownMenuRadioItem value="en_US">
+                <ReactCountryFlag countryCode="US" svg />
+                <div className="px-2"> English </div>
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="zh_CN">
+                <ReactCountryFlag countryCode="CN" svg />
+                <div className="px-2"> 简体中文 </div>
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="zh_TW">
+                <ReactCountryFlag countryCode="TW" svg />
+                <div className="px-2"> 繁體中文 </div>
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="ja_JP">
+                <ReactCountryFlag countryCode="JP" svg />
+                <div className="px-2"> 日本語 </div>
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="ko_KR">
+                <ReactCountryFlag countryCode="KR" svg />
+                <div className="px-2"> 한국인 </div>
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="de_DE">
+                <ReactCountryFlag countryCode="DE" svg />
+                <div className="px-2"> Deutsch </div>
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="pt_BR">
+                <ReactCountryFlag countryCode="BR" svg />
+                <div className="px-2"> Português </div>
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="es_ES">
+                <ReactCountryFlag countryCode="ES" svg />
+                <div className="px-2"> Español </div>
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="fr_FR">
+                <ReactCountryFlag countryCode="FR" svg />
+                <div className="px-2"> Français </div>
+              </DropdownMenuRadioItem>
+            </DropdownMenuRadioGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </header>
+
+      <div className="pal-layout">
+        <aside className="pal-sidebar" aria-label="配置分类">
+          {visibleSections.map((section) => (
+            <div className="pal-nav-section" key={section.id}>
+              <p>{section.name}</p>
+              {section.groups.map((group) => (
+                <button
+                  className={activeGroup === group.id ? "active" : ""}
+                  key={group.id}
+                  type="button"
+                  onClick={() => scrollToGroup(group.id)}
+                >
+                  <span>
+                    {renderGroupIcon(group.icon)}
+                    {group.name}
+                  </span>
+                  {changedByGroup[group.id] > 0 && <strong>{changedByGroup[group.id]}</strong>}
+                </button>
+              ))}
+            </div>
+          ))}
+        </aside>
+
+        <section className="pal-content" aria-label="配置项">
+          <div className="pal-overview">
+            <div>
+              <span>{configurableSettingCount}</span>
+              <p>全部配置</p>
+            </div>
+            <div>
+              <span>{changedIds.size}</span>
+              <p>已修改</p>
+            </div>
+            <div>
+              <span>{visibleSettingCount}</span>
+              <p>当前显示</p>
+            </div>
+          </div>
+
+          {visibleGroups.length === 0 ? (
+            <div className="pal-empty">
+              <Search className="h-6 w-6" />
+              <p>没有匹配的配置项</p>
+              <Button variant="secondary" onClick={() => setQuery("")}>
+                清除搜索
+              </Button>
+            </div>
+          ) : (
+            visibleGroups.map((group) => (
+              <section className="pal-group" id={`group-${group.id}`} key={group.id}>
+                <div className="pal-group-head">
+                  <div className="pal-group-icon">{renderGroupIcon(group.icon, "h-5 w-5")}</div>
+                  <div>
+                    <h2>{group.name}</h2>
+                    <p>{group.description}</p>
+                  </div>
+                  <Badge variant="outline" className="ml-auto">
+                    {group.settings.length} 项
+                  </Badge>
+                </div>
+                <div className="pal-setting-grid">
+                  {group.settings.map((id) => (
+                    <div className={changedIds.has(id) ? "pal-setting changed" : "pal-setting"} key={id}>
+                      {renderInput(id)}
+                      <div className="pal-setting-foot">
+                        <code>{id}</code>
+                        {changedIds.has(id) && (
+                          <Button
+                            className="h-7 gap-1 px-2"
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => resetEntry(id)}
+                          >
+                            <RotateCcw className="h-3.5 w-3.5" />
+                            默认
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            ))
+          )}
+        </section>
+
+        <aside className="pal-actions" aria-label="配置码操作">
+          <section className="pal-code-panel">
+            <div className="pal-code-title">
               <KeyRound className="h-5 w-5" />
-              配置码
-            </CardTitle>
-            <CardDescription>配置码永久有效，可在网页读取，也可交给服务器端配置工具下载配置文件。</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <Input
-                value={configCodeInput}
-                onChange={(e) => setConfigCodeInput(normalizeConfigCode(e.target.value))}
-                placeholder="ABCD-1234"
-                className="font-mono"
-              />
+              <div>
+                <h2>配置码</h2>
+                <p>永久有效，可在网页读取，也可交给服务器端配置工具使用。</p>
+              </div>
+            </div>
+            <Input
+              value={configCodeInput}
+              onChange={(event) => setConfigCodeInput(normalizeConfigCode(event.target.value))}
+              placeholder="ABCD-1234"
+              className="font-mono"
+            />
+            <div className="pal-code-actions">
               <Button variant="secondary" onClick={() => void loadConfigCode()} disabled={isLoadingConfig}>
                 读取配置码
               </Button>
@@ -427,11 +599,10 @@ function App() {
               </Button>
             </div>
             {configCode && (
-              <div className="flex flex-col gap-3 rounded-md border p-3 sm:flex-row sm:items-center">
-                <div className="text-sm text-muted-foreground">当前配置码</div>
-                <div className="font-mono text-lg font-semibold tracking-widest">{configCode}</div>
+              <div className="pal-current-code">
+                <span>当前配置码</span>
+                <strong>{configCode}</strong>
                 <Button
-                  className="sm:ml-auto"
                   variant="outline"
                   onClick={() =>
                     void copyText(configCode)
@@ -444,10 +615,19 @@ function App() {
                 </Button>
               </div>
             )}
-          </CardContent>
-        </Card>
-      </main>
-    </>
+          </section>
+
+          <section className="pal-summary-panel">
+            <h2>当前草稿</h2>
+            <p>{changedIds.size ? `已修改 ${changedIds.size} 项配置` : "当前为默认配置"}</p>
+            <Button className="w-full" variant="outline" onClick={resetAll} disabled={!changedIds.size}>
+              <RotateCcw className="mr-2 h-4 w-4" />
+              全部恢复默认
+            </Button>
+          </section>
+        </aside>
+      </div>
+    </main>
   );
 }
 
